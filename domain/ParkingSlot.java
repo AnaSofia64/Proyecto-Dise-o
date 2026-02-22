@@ -1,35 +1,21 @@
 package domain;
 
+/**
+ * ParkingSlot representa la plaza física.
+ */
 public class ParkingSlot {
-
-    private int slotId;
+    private final String id;
+    private final SpotType type;
     private boolean occupied;
-    private Vehicle vehicle;
 
-    public ParkingSlot(int slotId) {
-        this.slotId = slotId;
+    public ParkingSlot(String id, SpotType type) {
+        this.id = id;
+        this.type = type;
         this.occupied = false;
     }
 
-    public void assignVehicle(Vehicle vehicle) {
-        this.vehicle = vehicle;
-        this.occupied = true;
-    }
-
-    public void removeVehicle() {
-        this.vehicle = null;
-        this.occupied = false;
-    }
-
-    public boolean isOccupied() {
-        return occupied;
-    }
-
-    public int getSlotId() {
-        return slotId;
-    }
-
-    public Vehicle getVehicle() {
-        return vehicle;
-    }
+    public String getId() { return id; }
+    public SpotType getType() { return type; }
+    public boolean isOccupied() { return occupied; }
+    public void setOccupied(boolean occupied) { this.occupied = occupied; }
 }

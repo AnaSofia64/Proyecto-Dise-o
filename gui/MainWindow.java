@@ -35,7 +35,7 @@ public class MainWindow extends JFrame {
         JLabel header = new JLabel("Parking System", SwingConstants.CENTER);
         header.setFont(new Font("SansSerif", Font.BOLD, 20));
 
-        slotsLabel = new JLabel("Slots: " + manager.getSlotCount(), SwingConstants.CENTER);
+        slotsLabel = new JLabel(  "Disponibles: " + manager.getAvailableSlots() + " / Total: " + manager.getTotalSlots(), SwingConstants.CENTER);
         slotsLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
 
         JPanel center = new JPanel(new BorderLayout());

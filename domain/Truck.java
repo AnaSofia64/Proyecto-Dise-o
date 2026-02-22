@@ -1,13 +1,6 @@
 package domain;
 
 public class Truck extends Vehicle {
-
-    public Truck(String plate) {
-        super(plate);
-    }
-
-    @Override
-    public String getType() {
-        return "Truck";
-    }
+    public Truck(String plate, String ownerId) { super(plate, ownerId); }
+    @Override public VehicleType getType() { return VehicleType.TRUCK; }
 }
