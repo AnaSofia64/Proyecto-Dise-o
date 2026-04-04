@@ -6,6 +6,8 @@ import com.parkflow.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -18,17 +20,30 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        // Usuarios hardcodeados para la demo (sin base de datos)
-        if ("celador".equals(request.getUsername()) && 
-            "1234".equals(request.getPassword())) {
-            String token = jwtUtil.generateToken("celador", "CELADOR");
-            return ResponseEntity.ok(new LoginResponse(token, "celador", "CELADOR"));
+        // Usuarios hardcodeados para la demo
+        Map<String, String[]> users = Map.of(
+            "celador",  new String[]{"1234",    "ATTENDANT"},
+            "admin",    new String[]{"admin123", "ADMIN"},
+            "usuario",  new String[]{"user123",  "USER"}
+        );
+
+        String[] credentials = users.get(request.getUsername());
+        if (credentials == null || !credentials[0].equals(request.getPassword())) {
+            return ResponseEntity.status(401).body(Map.of("error", "Credenciales inválidas"));
         }
-        if ("admin".equals(request.getUsername()) && 
-            "admin123".equals(request.getPassword())) {
-            String token = jwtUtil.generateToken("admin", "ADMIN");
-            return ResponseEntity.ok(new LoginResponse(token, "admin", "ADMIN"));
-        }
-        return ResponseEntity.status(401).body("Credenciales incorrectas");
+
+        String role  = credentials[1];
+        String token = jwtUtil.generateToken(request.getUsername(), role);
+
+        // El front espera: { token, user: { username, role } }
+        Map<String, Object> user = Map.of(
+            "id",       request.getUsername(),
+            "username", request.getUsername(),
+            "fullName", request.getUsername(),
+            "email",    request.getUsername() + "@parkflow.com",
+            "role",     role
+        );
+
+        return ResponseEntity.ok(Map.of("token", token, "user", user));
     }
 }

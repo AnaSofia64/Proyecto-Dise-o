@@ -32,7 +32,7 @@ export class SpotGrid {
 
     try {
       this.spots = await spotApi.getAvailable(this.props.vehicleType);
-      this.render();
+      this.renderSpots();
     } catch (error) {
       this.renderError();
     } finally {
@@ -62,7 +62,7 @@ export class SpotGrid {
     `;
   }
 
-  private render(): void {
+  private renderSpots(): void {
     this.element.innerHTML = '';
 
     if (this.spots.length === 0) {

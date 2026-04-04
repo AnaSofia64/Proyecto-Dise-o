@@ -26,7 +26,7 @@ export class Button {
 
   private create(): HTMLButtonElement {
     const btn = document.createElement('button');
-    btn.type = this.props.type;
+    btn.type = this.props.type || 'button';
     btn.className = this.getClasses();
     btn.disabled = this.props.disabled || this.props.loading || false;
 
