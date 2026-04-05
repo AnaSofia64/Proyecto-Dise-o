@@ -1,49 +1,110 @@
 package com.parkflow.controller;
 
 import com.parkflow.dto.LoginRequest;
-import com.parkflow.dto.LoginResponse;
+import com.parkflow.entity.UserEntity;
+import com.parkflow.repository.jpa.UserJpaRepository;
 import com.parkflow.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final JwtUtil jwtUtil;
+    private final UserJpaRepository userRepo;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    public AuthController(JwtUtil jwtUtil) {
+    public AuthController(JwtUtil jwtUtil, UserJpaRepository userRepo) {
         this.jwtUtil = jwtUtil;
+        this.userRepo = userRepo;
+        this.passwordEncoder = new BCryptPasswordEncoder();
+        initDefaultUsers();
+    }
+
+    private void initDefaultUsers() {
+        if (!userRepo.existsByUsername("celador")) {
+            userRepo.save(new UserEntity(
+                "celador", "celador@parkflow.com",
+                passwordEncoder.encode("1234"),
+                "ATTENDANT", "Celador Principal"
+            ));
+        }
+        if (!userRepo.existsByUsername("admin")) {
+            userRepo.save(new UserEntity(
+                "admin", "admin@parkflow.com",
+                passwordEncoder.encode("admin123"),
+                "ADMIN", "Administrador"
+            ));
+        }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        // Usuarios hardcodeados para la demo
-        Map<String, String[]> users = Map.of(
-            "celador",  new String[]{"1234",    "ATTENDANT"},
-            "admin",    new String[]{"admin123", "ADMIN"},
-            "usuario",  new String[]{"user123",  "USER"}
-        );
+        Optional<UserEntity> userOpt = userRepo.findByUsername(request.getUsername());
 
-        String[] credentials = users.get(request.getUsername());
-        if (credentials == null || !credentials[0].equals(request.getPassword())) {
+        if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
             return ResponseEntity.status(401).body(Map.of("error", "Credenciales inválidas"));
         }
 
-        String role  = credentials[1];
-        String token = jwtUtil.generateToken(request.getUsername(), role);
+        UserEntity user = userOpt.get();
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
-        // El front espera: { token, user: { username, role } }
-        Map<String, Object> user = Map.of(
-            "id",       request.getUsername(),
-            "username", request.getUsername(),
-            "fullName", request.getUsername(),
-            "email",    request.getUsername() + "@parkflow.com",
-            "role",     role
+        return ResponseEntity.ok(Map.of(
+            "token", token,
+            "user", Map.of(
+                "id",       user.getId(),
+                "username", user.getUsername(),
+                "email",    user.getEmail(),
+                "fullName", user.getFullName(),
+                "role",     user.getRole()
+            )
+        ));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String email    = request.get("email");
+        String password = request.get("password");
+        String fullName = request.get("fullName");
+        String role     = request.getOrDefault("role", "USER");
+
+        if (username == null || email == null || password == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Faltan campos requeridos"));
+        }
+
+        if (userRepo.existsByUsername(username)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El usuario ya existe"));
+        }
+
+        if (userRepo.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El email ya está registrado"));
+        }
+
+        // Validar rol — solo USER y ATTENDANT permitidos desde registro
+        // ADMIN solo se puede crear directamente en la base de datos
+        if (!"USER".equals(role) && !"ATTENDANT".equals(role)) {
+            role = "USER";
+        }
+
+        UserEntity newUser = new UserEntity(
+            username, email,
+            passwordEncoder.encode(password),
+            role,
+            fullName != null ? fullName : username
         );
 
-        return ResponseEntity.ok(Map.of("token", token, "user", user));
+        userRepo.save(newUser);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Usuario registrado exitosamente",
+            "username", username,
+            "role",     role
+        ));
     }
 }

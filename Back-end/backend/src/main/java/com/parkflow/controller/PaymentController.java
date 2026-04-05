@@ -1,6 +1,7 @@
 package com.parkflow.controller;
 
 import com.parkflow.dto.PaymentRequest;
+import com.parkflow.entity.TicketEntity;
 import com.parkflow.service.ParkingFacade;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,57 +16,77 @@ public class PaymentController {
 
     private final ParkingFacade facade;
 
-    // ── Circuit Breaker manual ────────────────────────────────
     private final AtomicInteger failureCount = new AtomicInteger(0);
     private volatile long circuitOpenedAt    = 0;
-    private static final int    FAILURE_THRESHOLD = 5;
-    private static final long   CIRCUIT_TIMEOUT   = 30_000; // 30s
+    private static final int  FAILURE_THRESHOLD = 5;
+    private static final long CIRCUIT_TIMEOUT   = 30_000;
 
     public PaymentController(ParkingFacade facade) {
         this.facade = facade;
     }
 
-    /** POST /api/payments */
     @PostMapping
     public ResponseEntity<?> processPayment(@RequestBody PaymentRequest request,
                                              Authentication auth) {
-        // ── Circuit Breaker: ¿está abierto? ──────────────────
         if (isCircuitOpen()) {
             return ResponseEntity.status(503).body(Map.of(
-                "error",   "Servicio de pagos temporalmente no disponible",
-                "circuit", "OPEN",
+                "error",        "Servicio de pagos temporalmente no disponible",
+                "circuit",      "OPEN",
                 "retryAfterMs", remainingCircuitTime()
             ));
         }
 
-        // ── Retry con backoff exponencial (3 intentos) ────────
         long[] backoffs = {1000, 2000, 4000};
         Exception lastException = null;
 
         for (int attempt = 0; attempt < backoffs.length; attempt++) {
             try {
-                String role = auth.getAuthorities().iterator().next()
-                                  .getAuthority().replace("ROLE_", "");
+                String ticketId = request.getTicketId();
+                String method   = request.getPaymentMethod();
 
-                boolean paid = facade.exitAndPay(
-                    auth.getName(), role, request.getTicketId()
-                );
+                TicketEntity ticket = facade.findTicket(ticketId)
+                    .orElse(null);
 
-                if (paid) {
-                    failureCount.set(0); // reset circuit breaker en éxito
+                if (ticket == null) {
+                    return ResponseEntity.status(404).body(
+                        Map.of("error", "Ticket no encontrado: " + ticketId));
+                }
+
+                if (ticket.isPaid()) {
+                    failureCount.set(0);
                     return ResponseEntity.ok(Map.of(
-                        "ticketId", request.getTicketId(),
-                        "status",   "PAID",
-                        "attempt",  attempt + 1
-                    ));
-                } else {
-                    // Pago rechazado (no es excepción, es fallo de negocio)
-                    return ResponseEntity.status(402).body(Map.of(
-                        "ticketId", request.getTicketId(),
-                        "status",   "PAYMENT_FAILED",
-                        "message",  "Pago rechazado por el servicio"
+                        "id",        ticketId + "-pay",
+                        "ticketId",  ticketId,
+                        "amount",    ticket.getAmount(),
+                        "method",    method != null ? method : "CASH",
+                        "status",    "SUCCESS",
+                        "timestamp", java.time.LocalDateTime.now().toString(),
+                        "attempt",   attempt + 1
                     ));
                 }
+
+                String role = auth.getAuthorities().iterator().next()
+                                  .getAuthority().replace("ROLE_", "");
+                boolean paid = facade.exitAndPay(auth.getName(), role, ticketId);
+
+                if (paid) {
+                    failureCount.set(0);
+                    TicketEntity updated = facade.findTicket(ticketId).orElse(ticket);
+                    return ResponseEntity.ok(Map.of(
+                        "id",        ticketId + "-pay",
+                        "ticketId",  ticketId,
+                        "amount",    updated.getAmount(),
+                        "method",    method != null ? method : "CASH",
+                        "status",    "SUCCESS",
+                        "timestamp", java.time.LocalDateTime.now().toString(),
+                        "attempt",   attempt + 1
+                    ));
+                }
+
+                return ResponseEntity.status(402).body(Map.of(
+                    "ticketId", ticketId,
+                    "status",   "FAILED"
+                ));
 
             } catch (Exception e) {
                 lastException = e;
@@ -76,7 +97,6 @@ public class PaymentController {
             }
         }
 
-        // Todos los intentos fallaron → incrementar circuit breaker
         int failures = failureCount.incrementAndGet();
         if (failures >= FAILURE_THRESHOLD) {
             circuitOpenedAt = System.currentTimeMillis();
@@ -84,14 +104,12 @@ public class PaymentController {
         }
 
         return ResponseEntity.status(500).body(Map.of(
-            "error",    "Error procesando pago tras 3 intentos",
-            "detail",   lastException != null ? lastException.getMessage() : "unknown",
-            "circuit",  failures >= FAILURE_THRESHOLD ? "OPEN" : "CLOSED",
-            "failures", failures
+            "error",   "Error procesando pago tras 3 intentos",
+            "detail",  lastException != null ? lastException.getMessage() : "unknown",
+            "circuit", failures >= FAILURE_THRESHOLD ? "OPEN" : "CLOSED"
         ));
     }
 
-    // ── Helpers Circuit Breaker ───────────────────────────────
     private boolean isCircuitOpen() {
         if (circuitOpenedAt == 0) return false;
         return (System.currentTimeMillis() - circuitOpenedAt) < CIRCUIT_TIMEOUT;

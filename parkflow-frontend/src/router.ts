@@ -14,9 +14,11 @@ const pages = {
   attendantDashboard: () => import('./pages/AttendantDashboard.js').then(m => m.AttendantDashboard),
   registerEntry: () => import('./pages/RegisterEntryPage.js').then(m => m.RegisterEntryPage),
   processPayment: () => import('./pages/ProcessPaymentPage.js').then(m => m.ProcessPaymentPage),
+  attendantReports: () => import('./pages/AttendantReportsPage.ts').then(m => m.AttendantReportsPage),
   userDashboard: () => import('./pages/UserDashboard.js').then(m => m.UserDashboard),
   ticket: () => import('./pages/TicketPage.js').then(m => m.TicketPage),
-  adminPanel: () => import('./pages/AdminPanel.js').then(m => m.AdminPanel)
+  adminPanel: () => import('./pages/AdminPanel.js').then(m => m.AdminPanel),
+  adminWorkers: () => import('./pages/AdminWorkersPage.ts').then(m => m.AdminWorkersPage)
 };
 
 class Router {
@@ -30,41 +32,51 @@ class Router {
 
   private defineRoutes(): void {
     this.routes = [
-      { path: '/login', handler: () => this.renderPage('login') },
-      { path: '/register', handler: () => this.renderPage('register') },
-      { 
-        path: '/attendant/dashboard', 
-        handler: () => this.renderPage('attendantDashboard'),
-        roles: ['ATTENDANT']
-      },
-      { 
-        path: '/attendant/entry', 
-        handler: () => this.renderPage('registerEntry'),
-        roles: ['ATTENDANT']
-      },
-      { 
-        path: '/attendant/payment', 
-        handler: () => this.renderPage('processPayment'),
-        roles: ['ATTENDANT']
-      },
-      { 
-        path: '/user/dashboard', 
-        handler: () => this.renderPage('userDashboard'),
-        roles: ['USER']
-      },
-      { 
-        path: '/user/ticket', 
-        handler: () => this.renderPage('ticket'),
-        roles: ['USER']
-      },
-      { 
-        path: '/admin/panel', 
-        handler: () => this.renderPage('adminPanel'),
-        roles: ['ADMIN']
-      },
-      { path: '/', handler: () => this.redirect('/login') },
-      { path: '*', handler: () => this.redirect('/login') }
-    ];
+    { path: '/login', handler: () => this.renderPage('login') },
+    { path: '/register', handler: () => this.renderPage('register') },
+    {
+      path: '/attendant/dashboard',
+      handler: () => this.renderPage('attendantDashboard'),
+      roles: ['ATTENDANT', 'ADMIN']
+    },
+    {
+      path: '/attendant/entry',
+      handler: () => this.renderPage('registerEntry'),
+      roles: ['ATTENDANT', 'ADMIN']
+    },
+    {
+      path: '/attendant/payment',
+      handler: () => this.renderPage('processPayment'),
+      roles: ['ATTENDANT', 'ADMIN']
+    },
+    {
+      path: '/attendant/reports',
+      handler: () => this.renderPage('attendantReports'),
+      roles: ['ATTENDANT', 'ADMIN']
+    },
+    {
+      path: '/user/dashboard',
+      handler: () => this.renderPage('userDashboard'),
+      roles: ['USER']
+    },
+    {
+      path: '/user/ticket',
+      handler: () => this.renderPage('ticket'),
+      roles: ['USER']
+    },
+    {
+      path: '/admin/panel',
+      handler: () => this.renderPage('adminPanel'),
+      roles: ['ADMIN']
+    },
+    {
+      path: '/admin/workers',
+      handler: () => this.renderPage('adminWorkers'),
+      roles: ['ADMIN']
+    },
+    { path: '/', handler: () => this.redirect('/login') },
+    { path: '*', handler: () => this.redirect('/login') }
+  ];
   }
 
   private setupEventListeners(): void {
