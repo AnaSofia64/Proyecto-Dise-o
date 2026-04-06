@@ -186,7 +186,7 @@ export class ProcessPaymentPage {
     return hours * hourlyRate;
   }
 
-  private async processPayment(): Promise<void> {
+private async processPayment(): Promise<void> {
     if (this.isProcessing) return;
 
     this.isProcessing = true;
@@ -197,9 +197,8 @@ export class ProcessPaymentPage {
 
     try {
       const payment = await paymentApi.process(this.ticket.id, this.selectedMethod);
-      
+
       if (payment.status === 'SUCCESS') {
-        await ticketApi.close(this.ticket.id);
         this.showSuccess(payment);
       } else {
         throw new Error('El pago no pudo ser procesado');
@@ -208,7 +207,7 @@ export class ProcessPaymentPage {
       btn.innerHTML = originalText;
       btn.disabled = false;
       this.isProcessing = false;
-      
+
       const retry = confirm('Error en el pago. ¿Desea dejar el ticket como PENDIENTE DE PAGO para procesar después?');
       if (retry) {
         storage.set('pending_payment', { ticketId: this.ticket.id, method: this.selectedMethod });

@@ -121,20 +121,20 @@ export const authApi = {
 };
 
 export const ticketApi = {
-  create: (data: CreateTicketData) => 
+  create: (data: CreateTicketData) =>
     api.post<Ticket>('/tickets', data),
-  
-  getActive: () => 
+
+  getActive: () =>
     api.get<Ticket[]>('/tickets/active'),
-  
-  getById: (id: string) => 
+
+  getById: (id: string) =>
     api.get<Ticket>(`/tickets/${id}`),
-  
-  close: (id: string) => 
+
+  close: (id: string) =>
     api.post<Ticket>(`/tickets/${id}/exit`, {}),
-  
+
   getUserTickets: () =>
-    api.get<Ticket[]>('/tickets/my-tickets')
+    api.get<Ticket[]>('/users/tickets')
 };
 
 export const spotApi = {
@@ -156,6 +156,19 @@ export const paymentApi = {
     api.get<Payment>(`/payments/${id}/status`)
 };
 
+export const userApi = {
+  getMe: () =>
+    api.get<User>('/users/me'),
+
+  addPlate: (plate: string) =>
+    api.post<{ message: string; plates: string[] }>('/users/plates', { plate }),
+
+  removePlate: (plate: string) =>
+    api.delete<{ message: string; plates: string[] }>(`/users/plates/${plate}`),
+
+  getMyTickets: () =>
+    api.get<Ticket[]>('/users/tickets')
+};
 // Tipos exportados
 export interface User {
   id: string;
