@@ -8,6 +8,7 @@ import java.util.Optional;
 
 /**
  * Interfaz para manejo de plazas (DIP).
+ * Interfaz para manejo de plazas (DIP).
  * Implementaciones pueden ser manuales o automáticas.
  */
 public interface SpotService {

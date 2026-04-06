@@ -9,7 +9,7 @@ interface Route {
 }
 
 const pages = {
-  login: () => import('./pages/LoginPage.js').then(m => m.LoginPage),
+  login: () => import('../src/pages/LoginPage.js').then(m => m.LoginPage),
   register: () => import('./pages/RegisterPage.js').then(m => m.RegisterPage),
   attendantDashboard: () => import('./pages/AttendantDashboard.js').then(m => m.AttendantDashboard),
   registerEntry: () => import('./pages/RegisterEntryPage.js').then(m => m.RegisterEntryPage),

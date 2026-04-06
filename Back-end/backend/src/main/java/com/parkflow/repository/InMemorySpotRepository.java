@@ -1,18 +1,21 @@
 package com.parkflow.repository;
 
-import com.parkflow.domain.ParkingSlot;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Repositorio en memoria para plazas.
- * SRP: separa persistencia de lógica.
- */
+import com.parkflow.domain.ParkingSlot;
+
 public class InMemorySpotRepository {
+
     private final Map<String, ParkingSlot> storage = new ConcurrentHashMap<>();
 
     public void save(ParkingSlot slot) { storage.put(slot.getId(), slot); }
+
     public Optional<ParkingSlot> findById(String id) { return Optional.ofNullable(storage.get(id)); }
+
     public List<ParkingSlot> findAll() { return new ArrayList<>(storage.values()); }
 
     public List<ParkingSlot> findAvailable() {

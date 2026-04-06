@@ -14,6 +14,8 @@ export class AttendantDashboard {
   private container: HTMLDivElement;
   private stats: any = null;
   private tickets: any[] = [];
+  private allSpots: any[] = [];
+  private refreshInterval: number | null = null;
 
   constructor() {
     this.container = document.createElement('div');
@@ -31,35 +33,65 @@ export class AttendantDashboard {
     main.appendChild(header.render());
 
     const content = document.createElement('main');
+    content.id = 'dashboard-content';
     content.style.padding = '2rem';
 
     await this.loadData();
-
-    content.appendChild(this.renderStats());
-
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 1.5rem;';
-
-    grid.appendChild(this.renderChart());
-    grid.appendChild(this.renderSpotStatus());
-
-    content.appendChild(grid);
-    content.appendChild(this.renderRecentTickets());
+    this.buildContent(content);
 
     main.appendChild(content);
     this.container.appendChild(main);
 
+    // Auto-refresh cada 30 segundos
+    this.refreshInterval = window.setInterval(async () => {
+      await this.loadData();
+      this.refreshDynamicSections();
+    }, 30000);
+
+    // Limpiar intervalo al navegar
+    window.addEventListener('popstate', () => {
+      if (this.refreshInterval) clearInterval(this.refreshInterval);
+    }, { once: true });
+
     return this.container;
+  }
+
+  private buildContent(content: HTMLElement): void {
+    content.innerHTML = '';
+
+    const statsEl = this.renderStats();
+    statsEl.id = 'stats-section';
+    content.appendChild(statsEl);
+
+    const grid = document.createElement('div');
+    grid.id = 'grid-section';
+    grid.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 1.5rem;';
+    grid.appendChild(this.renderChart());
+    grid.appendChild(this.renderSpotStatus());
+    content.appendChild(grid);
+
+    const ticketsEl = this.renderRecentTickets();
+    ticketsEl.id = 'tickets-section';
+    content.appendChild(ticketsEl);
+  }
+
+  private refreshDynamicSections(): void {
+    const content = document.getElementById('dashboard-content');
+    if (!content) return;
+    this.buildContent(content);
   }
 
   private async loadData(): Promise<void> {
     try {
-      const [stats, tickets] = await Promise.all([
+      const [stats, tickets, spotsData] = await Promise.all([
         spotApi.getStats(),
-        ticketApi.getActive()
+        ticketApi.getActive(),
+        spotApi.getAll()
       ]);
       this.stats = stats;
-      this.tickets = tickets.slice(0, 5);
+      this.tickets = Array.isArray(tickets) ? tickets.slice(0, 5) : [];
+      // getAll retorna { available, occupied, spots: [...] }
+      this.allSpots = (spotsData as any).spots || [];
     } catch (error) {
       console.error('Error cargando datos:', error);
     }
@@ -69,56 +101,45 @@ export class AttendantDashboard {
     const grid = document.createElement('div');
     grid.className = 'stats-grid';
 
-    const stats = [
+    const pendingPayments = this.tickets.filter((t: any) => t.status === 'PENDING').length;
+
+    const statItems = [
       {
-        icon: icons.car,
-        iconClass: 'primary',
-        value: `${this.stats?.occupancyRate || 0}%`,
+        icon: icons.car, iconClass: 'primary',
+        value: `${Math.round(this.stats?.occupancyRate || 0)}%`,
         label: 'Ocupación',
         sublabel: `${this.stats?.occupiedSpots || 0}/${this.stats?.totalSpots || 0} plazas`,
-        trend: '+5%',
-        trendUp: true
+        trend: '', trendUp: true
       },
       {
-        icon: icons.clock,
-        iconClass: 'cyan',
+        icon: icons.clock, iconClass: 'cyan',
         value: String(this.stats?.activeTickets || 0),
         label: 'Tickets Activos',
         sublabel: 'En este momento',
-        trend: '+12%',
-        trendUp: true
+        trend: '', trendUp: true
       },
       {
-        icon: icons.dollar,
-        iconClass: 'green',
+        icon: icons.dollar, iconClass: 'green',
         value: formatCurrency(this.stats?.todayRevenue || 0),
         label: 'Ingresos Hoy',
         sublabel: 'Total recaudado',
-        trend: '+8%',
-        trendUp: true
+        trend: '', trendUp: true
       },
       {
-        icon: icons.alert,
-        iconClass: 'orange',
-        value: '3',
+        icon: icons.alert, iconClass: 'orange',
+        value: String(pendingPayments),
         label: 'Pagos Pendientes',
         sublabel: 'Requieren atención',
-        trend: '-2',
-        trendUp: false
+        trend: '', trendUp: false
       }
     ];
 
-    stats.forEach(stat => {
+    statItems.forEach(stat => {
       const card = document.createElement('div');
       card.className = 'stat-card';
       card.innerHTML = `
         <div class="stat-header">
-          <div class="stat-icon ${stat.iconClass}">
-            ${stat.icon}
-          </div>
-          <span class="stat-trend ${stat.trendUp ? 'up' : 'down'}">
-            ${stat.trendUp ? '↑' : '↓'} ${stat.trend}
-          </span>
+          <div class="stat-icon ${stat.iconClass}">${stat.icon}</div>
         </div>
         <div class="stat-value">${stat.value}</div>
         <div class="stat-label">${stat.label}</div>
@@ -130,41 +151,78 @@ export class AttendantDashboard {
     return grid;
   }
 
-  private renderChart(): HTMLElement {
+    private renderChart(): HTMLElement {
     const card = document.createElement('div');
     card.className = 'card';
+
+    const activeCount = this.tickets.length;
+    const rate        = this.stats?.occupancyRate || 0;
+
+    // Barras de ocupación por hora (simuladas con el dato real de hoy como ancla)
+    const hours = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+    const profile = [10,20,35,55,70,80,75,65,60,70,80,85,75,55,35,20];
+    const currentHour = new Date().getHours();
+
     card.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.125rem; font-weight: 600;">Ocupación por Hora</h3>
-        <select style="background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.5rem 0.75rem; color: var(--text-secondary); font-size: 0.875rem;">
-          <option>Hoy</option>
-          <option>Esta semana</option>
-        </select>
+        <span style="font-size: 0.875rem; color: var(--text-muted);">Hoy — ${activeCount} activos ahora</span>
       </div>
-      <div style="height: 200px; display: flex; align-items: flex-end; justify-content: space-between; gap: 0.5rem;">
-        ${[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 50, 95].map((h, i) => `
-          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-            <div style="width: 100%; height: ${h * 2}px; background: linear-gradient(to top, var(--primary), var(--primary-light)); border-radius: 4px 4px 0 0; opacity: 0.8;"></div>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">${i + 8}h</span>
-          </div>
-        `).join('')}
+      <div style="height: 180px; display: flex; align-items: flex-end; gap: 3px;">
+        ${hours.map((h, i) => {
+          const isNow = h === currentHour;
+          // La hora actual usa el dato real del back, las demás son referenciales
+          const heightPct = isNow ? Math.max(rate, 5) : profile[i];
+          return `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+              <div style="width: 100%; height: ${heightPct * 1.8}px;
+                background: ${isNow ? 'var(--primary)' : 'var(--bg-input)'};
+                border: ${isNow ? 'none' : '1px solid var(--border)'};
+                border-radius: 3px 3px 0 0;
+                transition: height 0.5s ease;"
+                title="${h}:00 — ${isNow ? Math.round(rate) + '% (real)' : profile[i] + '% (ref)'}">
+              </div>
+              <span style="font-size: 0.6rem; color: ${isNow ? 'var(--primary)' : 'var(--text-muted)'};">${h}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 1rem; font-size: 0.75rem; color: var(--text-muted);">
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <div style="width: 10px; height: 10px; background: var(--primary); border-radius: 2px;"></div>
+          Dato real ahora
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <div style="width: 10px; height: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 2px;"></div>
+          Referencial
+        </div>
       </div>
     `;
     return card;
   }
 
-  private renderSpotStatus(): HTMLElement {
+    private renderSpotStatus(): HTMLElement {
     const card = document.createElement('div');
     card.className = 'card';
+
+    const total     = this.stats?.totalSpots     || 0;
+    const occupied  = this.stats?.occupiedSpots  || 0;
+    const available = this.stats?.availableSpots || 0;
+
+    // Estimación por tipo basada en proporciones del back (5 carros, 2 motos, 1 truck, 1 handicap)
+    const carTotal  = 5; const carOcc  = Math.min(occupied, carTotal);
+    const motoTotal = 2; const motoOcc = Math.max(0, Math.min(occupied - carOcc, motoTotal));
+    const truckTotal= 2; const truckOcc= Math.max(0, Math.min(occupied - carOcc - motoOcc, truckTotal));
+
     card.innerHTML = `
       <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1.5rem;">Estado de Plazas</h3>
       <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
         ${[
-          { type: 'Carros', occupied: 15, total: 20, color: 'var(--primary)' },
-          { type: 'Motos', occupied: 8, total: 12, color: 'var(--cyan)' },
-          { type: 'Buses', occupied: 2, total: 5, color: 'var(--orange)' }
+          { type: 'Carros',  occupied: carOcc,   total: carTotal,   color: 'var(--primary)' },
+          { type: 'Motos',   occupied: motoOcc,  total: motoTotal,  color: 'var(--cyan)'    },
+          { type: 'Camiones',occupied: truckOcc, total: truckTotal, color: 'var(--orange)'  }
         ].map(s => {
-          const pct = (s.occupied / s.total) * 100;
+          const pct = s.total > 0 ? (s.occupied / s.total) * 100 : 0;
           return `
             <div>
               <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.5rem;">
@@ -178,66 +236,55 @@ export class AttendantDashboard {
           `;
         }).join('')}
       </div>
-      <div style="padding-top: 1.5rem; border-top: 1px solid var(--border);">
-        <h4 style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.75rem;">Leyenda</h4>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <div style="width: 12px; height: 12px; background: var(--green); border-radius: 50%;"></div>
-            <span style="font-size: 0.875rem; color: var(--text-muted);">Disponible</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <div style="width: 12px; height: 12px; background: var(--red); border-radius: 50%;"></div>
-            <span style="font-size: 0.875rem; color: var(--text-muted);">Ocupado</span>
-          </div>
+      <div style="padding-top: 1rem; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; text-align: center;">
+        <div style="padding: 0.75rem; background: var(--bg-input); border-radius: var(--radius-md);">
+          <p style="font-size: 1.25rem; font-weight: 700; color: var(--green);">${available}</p>
+          <p style="font-size: 0.75rem; color: var(--text-muted);">Disponibles</p>
+        </div>
+        <div style="padding: 0.75rem; background: var(--bg-input); border-radius: var(--radius-md);">
+          <p style="font-size: 1.25rem; font-weight: 700; color: var(--red);">${occupied}</p>
+          <p style="font-size: 0.75rem; color: var(--text-muted);">Ocupadas</p>
         </div>
       </div>
     `;
     return card;
   }
-
   private renderRecentTickets(): HTMLElement {
     const card = document.createElement('div');
     card.className = 'card';
     card.style.marginTop = '1.5rem';
 
-    const table = document.createElement('div');
-    table.className = 'table-container';
+    const rows = this.tickets.map((t: any) => {
+      const duration = Math.floor((Date.now() - new Date(t.entryTime).getTime()) / 60000);
+      return `
+        <tr>
+          <td style="font-family: monospace;">#${t.id.slice(-6)}</td>
+          <td>${t.vehicle?.licensePlate || t.vehicle?.id || '-'}</td>
+          <td style="color: var(--text-muted);">${new Date(t.entryTime).toLocaleTimeString()}</td>
+          <td style="color: var(--text-muted);">${formatDuration(duration)}</td>
+          <td><span class="badge badge-success">Activo</span></td>
+          <td><a href="/attendant/payment" data-link style="color: var(--primary); text-decoration: none; font-weight: 500;">Procesar Salida</a></td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay tickets activos</td></tr>';
 
-    table.innerHTML = `
+    card.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.125rem; font-weight: 600;">Tickets Activos Recientes</h3>
-        <a href="/attendant/entry" data-link style="color: var(--primary); text-decoration: none; font-size: 0.875rem; font-weight: 500;">Ver todos</a>
+        <a href="/attendant/entry" data-link style="color: var(--primary); text-decoration: none; font-size: 0.875rem; font-weight: 500;">Registrar entrada</a>
       </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Ticket ID</th>
-            <th>Placa</th>
-            <th>Entrada</th>
-            <th>Tiempo</th>
-            <th>Estado</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${this.tickets.map(t => {
-            const duration = Math.floor((Date.now() - new Date(t.entryTime).getTime()) / 60000);
-            return `
-              <tr>
-                <td style="font-family: monospace;">#${t.id.slice(-6)}</td>
-                <td>${t.vehicle.licensePlate}</td>
-                <td style="color: var(--text-muted);">${new Date(t.entryTime).toLocaleTimeString()}</td>
-                <td style="color: var(--text-muted);">${formatDuration(duration)}</td>
-                <td><span class="badge badge-success">Activo</span></td>
-                <td><a href="/attendant/payment?ticket=${t.id}" data-link style="color: var(--primary); text-decoration: none; font-weight: 500;">Procesar Salida</a></td>
-              </tr>
-            `;
-          }).join('') || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay tickets activos</td></tr>'}
-        </tbody>
-      </table>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ticket ID</th><th>Placa</th><th>Entrada</th>
+              <th>Tiempo</th><th>Estado</th><th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     `;
-
-    card.appendChild(table);
     return card;
   }
 }

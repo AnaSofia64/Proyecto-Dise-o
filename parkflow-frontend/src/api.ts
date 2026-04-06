@@ -216,6 +216,12 @@ export interface DashboardStats {
   todayRevenue: number;
   occupancyRate: number;
 }
+export const workersApi = {
+  list: () => api.get<Record<string, string>>('/workers'),
+  create: (username: string, password: string) =>
+    api.post<{ username: string; role: string; status: string }>('/workers', { username, password }),
+  delete: (username: string) => api.delete<{ status: string }>(`/workers/${username}`)
+};
 
 export interface CreateTicketData {
   licensePlate: string;

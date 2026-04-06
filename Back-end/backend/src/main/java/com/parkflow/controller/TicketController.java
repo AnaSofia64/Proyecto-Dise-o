@@ -1,15 +1,21 @@
 package com.parkflow.controller;
 
-import com.parkflow.dto.TicketRequest;
-import com.parkflow.service.ParkingFacade;
-import com.parkflow.domain.Ticket;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.parkflow.domain.Ticket;
+import com.parkflow.dto.TicketRequest;
+import com.parkflow.service.ParkingFacade;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -21,18 +27,13 @@ public class TicketController {
         this.facade = facade;
     }
 
-    /** POST /api/tickets */
     @PostMapping
-    public ResponseEntity<?> createTicket(@RequestBody TicketRequest request,
-                                           Authentication auth) {
+    public ResponseEntity<?> createTicket(@RequestBody TicketRequest request, Authentication auth) {
         try {
-            String role = auth.getAuthorities().iterator().next()
-                              .getAuthority().replace("ROLE_", "");
+            String role = auth.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
             Ticket ticket = facade.admitVehicle(
                 auth.getName(), role,
-                request.getLicensePlate(),
-                request.getVehicleType(),
-                request.getSpotId()
+                request.getLicensePlate(), request.getVehicleType(), request.getSpotId()
             );
             return ResponseEntity.ok(toFrontendResponse(ticket));
         } catch (SecurityException e) {
@@ -41,36 +42,35 @@ public class TicketController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-
-    /** GET /api/tickets/active */
     @GetMapping("/active")
     public ResponseEntity<?> getActive() {
-        // Por ahora retorna lista vacía — el repo no tiene listAll expuesto
-        return ResponseEntity.ok(List.of());
+        List<Ticket> active = facade.getActiveTickets();
+        List<Map<String, Object>> result = active.stream()
+            .map(this::toFrontendResponse)
+            .toList();
+        return ResponseEntity.ok(result);
     }
 
-    /** GET /api/tickets/my-tickets */
-    @GetMapping("/my-tickets")
-    public ResponseEntity<?> getMyTickets() {
-        return ResponseEntity.ok(List.of());
+   @GetMapping("/my-tickets")
+    public ResponseEntity<?> getMyTickets(Authentication auth) {
+    List<Ticket> active = facade.getActiveTickets();
+    List<Map<String, Object>> result = active.stream()
+        .map(this::toFrontendResponse)
+        .toList();
+    return ResponseEntity.ok(result);
     }
 
-    /** GET /api/tickets/{id} */
     @GetMapping("/{id}")
     public ResponseEntity<?> getTicket(@PathVariable String id) {
         Optional<Ticket> opt = facade.findTicket(id);
-        if (opt.isEmpty()) {
-            return ResponseEntity.status(404).body(Map.of("error", "Ticket no encontrado"));
-        }
+        if (opt.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Ticket no encontrado"));
         return ResponseEntity.ok(toFrontendResponse(opt.get()));
     }
 
-    /** POST /api/tickets/{id}/exit */
     @PostMapping("/{id}/exit")
     public ResponseEntity<?> exitTicket(@PathVariable String id, Authentication auth) {
         try {
-            String role = auth.getAuthorities().iterator().next()
-                              .getAuthority().replace("ROLE_", "");
+            String role = auth.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
             boolean paid = facade.exitAndPay(auth.getName(), role, id);
             return ResponseEntity.ok(Map.of("ticketId", id, "paid", paid,
                 "status", paid ? "PAID" : "FAILED"));
@@ -81,7 +81,6 @@ public class TicketController {
         }
     }
 
-    // Estructura que el front espera
     private Map<String, Object> toFrontendResponse(Ticket t) {
         return Map.of(
             "id",        t.getId(),
