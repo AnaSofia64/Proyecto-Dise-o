@@ -269,7 +269,7 @@ private plateRow(p: any): string {
             style="background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.25rem; padding: 0.25rem;">🗑</button>
         </div>
       </div>
-      <div class="qr-container" data-plate="${p.plate}" style="display: none; margin-top: 0.75rem; text-align: center; padding: 1rem; background: white; border-radius: var(--radius-md);">
+      <div class="qr-container" data-plate="${p.plate}" style="display: none; margin-top: 0.75rem; text-align: center; padding: 1rem; background: black; border-radius: var(--radius-md);">
         <canvas class="qr-canvas" style="display: block; margin: 0 auto;"></canvas>
         <p style="color: #333; font-size: 0.75rem; margin-top: 0.5rem; font-family: monospace;">${p.plate} · ${typeLabel[p.vehicleType] || p.vehicleType}</p>
         <p style="color: #888; font-size: 0.7rem; margin-top: 0.25rem;">Muestra este QR al celador para registrar tu entrada</p>
