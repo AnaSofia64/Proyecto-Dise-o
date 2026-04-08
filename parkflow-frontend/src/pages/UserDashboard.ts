@@ -323,7 +323,7 @@ private attachPlateDeleteListeners(card: HTMLElement): void {
           await QRCode.toCanvas(canvas, qrData, {
             width: 160,
             margin: 1,
-            color: { dark: '#000000', light: '#ffffff' }
+            color: { dark: '#ffffff', light: '#000000' }
           });
         } catch (err) {
           console.error('Error generando QR:', err);
