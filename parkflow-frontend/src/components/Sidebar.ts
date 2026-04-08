@@ -53,7 +53,6 @@ export class Sidebar {
     const navItems: NavItem[] = [
       { path: '/attendant/dashboard', label: 'Panel', icon: icons.dashboard, roles: ['ATTENDANT'] },
       { path: '/attendant/entry', label: 'Registrar Entrada', icon: icons.car, roles: ['ATTENDANT'] },
-      { path: '/attendant/payment', label: 'Procesar Pagos', icon: icons.payment, roles: ['ATTENDANT'] },
       { path: '/attendant/reports', label: 'Reportes', icon: icons.report, roles: ['ATTENDANT'] },
       { path: '/user/dashboard', label: 'Mi Parqueo', icon: icons.car, roles: ['USER'] },
       { path: '/user/ticket', label: 'Ticket & Pago', icon: icons.ticket, roles: ['USER'] },

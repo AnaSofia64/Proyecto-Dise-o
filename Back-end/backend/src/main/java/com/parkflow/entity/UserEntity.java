@@ -27,10 +27,9 @@ public class UserEntity {
     @Column(name = "full_name")
     private String fullName;
 
-    @ElementCollection
-    @CollectionTable(name = "user_plates", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "plate")
-    private List<String> licensePlates = new ArrayList<>();
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "user_id")
+    private List<UserPlateEntity> licensePlates = new ArrayList<>();
 
     public UserEntity() {}
 
@@ -48,12 +47,12 @@ public class UserEntity {
     public String getPassword() { return password; }
     public String getRole() { return role; }
     public String getFullName() { return fullName; }
-    public List<String> getLicensePlates() { return licensePlates; }
+    public List<UserPlateEntity> getLicensePlates() { return licensePlates; }
     public void setId(String id) { this.id = id; }
     public void setUsername(String username) { this.username = username; }
     public void setEmail(String email) { this.email = email; }
     public void setPassword(String password) { this.password = password; }
     public void setRole(String role) { this.role = role; }
     public void setFullName(String fullName) { this.fullName = fullName; }
-    public void setLicensePlates(List<String> licensePlates) { this.licensePlates = licensePlates; }
+    public void setLicensePlates(List<UserPlateEntity> licensePlates) { this.licensePlates = licensePlates; }
 }

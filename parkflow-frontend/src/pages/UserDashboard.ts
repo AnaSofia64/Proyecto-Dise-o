@@ -39,6 +39,8 @@ export class UserDashboard {
 
     const content = document.createElement('main');
     content.style.cssText = 'padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem;';
+    
+    content.appendChild(this.renderPlatesSection());
 
     if (this.activeTicket) {
       content.appendChild(this.renderActiveParking());
@@ -46,7 +48,9 @@ export class UserDashboard {
       content.appendChild(this.renderNoActiveParking());
     }
 
+    
     content.appendChild(this.renderMap());
+    
 
     main.appendChild(content);
     this.container.appendChild(main);
@@ -158,6 +162,123 @@ export class UserDashboard {
 
     return card;
   }
+
+  private renderPlatesSection(): HTMLElement {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.maxWidth = '500px';
+  card.id = 'plates-card';
+
+  this.buildPlatesCard(card);
+  return card;
+}
+
+private async buildPlatesCard(card: HTMLElement): Promise<void> {
+  let plates: any[] = [];
+  try {
+    const me = await (await import('../api.js')).userApi.getMe() as any;
+    plates = me.licensePlates || [];
+  } catch (e) {
+    console.error('Error cargando placas:', e);
+  }
+
+  card.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.125rem; font-weight: 600;">Mis Vehículos</h3>
+      <button id="btn-show-plate-form" style="background: var(--primary); color: white; border: none; border-radius: var(--radius-md); padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.875rem; font-weight: 500;">+ Agregar</button>
+    </div>
+
+    <div id="plate-form" style="display: none; margin-bottom: 1.25rem; padding: 1rem; background: var(--bg-input); border-radius: var(--radius-md); border: 1px solid var(--border);">
+      <input id="plate-input" type="text" class="input" placeholder="Placa (ej: ABC123)" style="margin-bottom: 0.75rem; width: 100%; box-sizing: border-box; text-transform: uppercase;"/>
+      <select id="type-input" class="input" style="margin-bottom: 0.75rem; width: 100%; box-sizing: border-box;">
+        <option value="">Tipo de vehículo</option>
+        <option value="CAR">Carro</option>
+        <option value="MOTORCYCLE">Moto</option>
+        <option value="TRUCK">Camión</option>
+      </select>
+      <div id="plate-error" style="display: none; color: var(--red); font-size: 0.8rem; margin-bottom: 0.5rem;"></div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="btn-save-plate" style="flex: 1; background: var(--primary); color: white; border: none; border-radius: var(--radius-md); padding: 0.6rem; cursor: pointer; font-weight: 500;">Guardar</button>
+        <button id="btn-cancel-plate" style="flex: 1; background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.6rem; cursor: pointer;">Cancelar</button>
+      </div>
+    </div>
+
+    <div id="plates-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+      ${plates.length === 0
+        ? `<p style="color: var(--text-muted); text-align: center; padding: 1rem; font-size: 0.875rem;">No tienes vehículos registrados</p>`
+        : plates.map((p: any) => this.plateRow(p)).join('')
+      }
+    </div>
+  `;
+
+  // Toggle form
+  card.querySelector('#btn-show-plate-form')?.addEventListener('click', () => {
+    const form = card.querySelector('#plate-form') as HTMLElement;
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+
+  card.querySelector('#btn-cancel-plate')?.addEventListener('click', () => {
+    (card.querySelector('#plate-form') as HTMLElement).style.display = 'none';
+  });
+
+  // Guardar placa
+  card.querySelector('#btn-save-plate')?.addEventListener('click', async () => {
+    const plate = ((card.querySelector('#plate-input') as HTMLInputElement).value).toUpperCase().trim();
+    const vehicleType = (card.querySelector('#type-input') as HTMLSelectElement).value;
+    const errorEl = card.querySelector('#plate-error') as HTMLElement;
+
+    if (!plate || !vehicleType) {
+      errorEl.textContent = 'Completa todos los campos';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      const { userApi } = await import('../api.js');
+      await userApi.addPlate(plate, vehicleType);
+      // Reconstruir card
+      this.buildPlatesCard(card);
+    } catch (e: any) {
+      errorEl.textContent = e.message || 'Error al guardar';
+      errorEl.style.display = 'block';
+    }
+  });
+
+  // Eliminar placa
+  this.attachPlateDeleteListeners(card);
+}
+
+private plateRow(p: any): string {
+  const typeLabel: Record<string, string> = { CAR: 'Carro', MOTORCYCLE: 'Moto', TRUCK: 'Camión' };
+  return `
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: var(--bg-input); border-radius: var(--radius-md);">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem;">🚗</div>
+        <div>
+          <p style="font-weight: 600; letter-spacing: 0.05em;">${p.plate}</p>
+          <p style="color: var(--text-muted); font-size: 0.75rem;">${typeLabel[p.vehicleType] || p.vehicleType}</p>
+        </div>
+      </div>
+      <button class="btn-delete-plate" data-plate="${p.plate}" style="background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.25rem; padding: 0.25rem;">🗑</button>
+    </div>
+  `;
+}
+
+private attachPlateDeleteListeners(card: HTMLElement): void {
+  card.querySelectorAll('.btn-delete-plate').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const plate = (e.currentTarget as HTMLElement).dataset.plate!;
+      if (!confirm(`¿Eliminar placa ${plate}?`)) return;
+      try {
+        const { userApi } = await import('../api.js');
+        await userApi.removePlate(plate);
+        this.buildPlatesCard(card);
+      } catch {
+        alert('Error al eliminar placa');
+      }
+    });
+  });
+}
 
   private renderMap(): HTMLElement {
     const card = document.createElement('div');

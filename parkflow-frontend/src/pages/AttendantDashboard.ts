@@ -263,7 +263,7 @@ export class AttendantDashboard {
           <td style="color: var(--text-muted);">${new Date(t.entryTime).toLocaleTimeString()}</td>
           <td style="color: var(--text-muted);">${formatDuration(duration)}</td>
           <td><span class="badge badge-success">Activo</span></td>
-          <td><a href="/attendant/payment" data-link style="color: var(--primary); text-decoration: none; font-weight: 500;">Procesar Salida</a></td>
+          <td><a href="/attendant/reports" data-link style="color: var(--primary); text-decoration: none; font-weight: 500;">Ver en Reportes</a></td>
         </tr>
       `;
     }).join('') || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay tickets activos</td></tr>';

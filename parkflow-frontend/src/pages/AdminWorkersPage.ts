@@ -1,5 +1,6 @@
 import { Sidebar } from '../components/Sidebar.js';
 import { userApi } from '../api.js';
+import { api } from '../api.js';
 
 export class AdminWorkersPage {
   private container: HTMLDivElement;
@@ -54,37 +55,33 @@ export class AdminWorkersPage {
     content.appendChild(formCard);
 
     formCard.querySelector('#w-submit')?.addEventListener('click', async () => {
-      const fullName = (formCard.querySelector('#w-fullname') as HTMLInputElement).value.trim();
-      const username = (formCard.querySelector('#w-username') as HTMLInputElement).value.trim();
-      const email    = (formCard.querySelector('#w-email') as HTMLInputElement).value.trim();
-      const password = (formCard.querySelector('#w-password') as HTMLInputElement).value;
-      const errorEl  = formCard.querySelector('#w-error') as HTMLElement;
+    const fullName = (formCard.querySelector('#w-fullname') as HTMLInputElement).value.trim();
+    const username = (formCard.querySelector('#w-username') as HTMLInputElement).value.trim();
+    const email    = (formCard.querySelector('#w-email') as HTMLInputElement).value.trim();
+    const password = (formCard.querySelector('#w-password') as HTMLInputElement).value;
+    const errorEl  = formCard.querySelector('#w-error') as HTMLElement;
 
-      if (!fullName || !username || !email || !password) {
-        errorEl.textContent = 'Todos los campos son requeridos';
-        errorEl.style.display = 'block';
-        return;
-      }
+    if (!fullName || !username || !email || !password) {
+      errorEl.textContent = 'Todos los campos son requeridos';
+      errorEl.style.display = 'block';
+      return; 
+    }
 
-      try {
-        await fetch('http://localhost:8080/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${JSON.parse(localStorage.getItem('jwt_token') || '""')}`
-          },
-          body: JSON.stringify({ fullName, username, email, password, role: 'ATTENDANT' })
-        });
-        alert(`Celador ${username} creado exitosamente`);
-        (formCard.querySelector('#w-fullname') as HTMLInputElement).value = '';
-        (formCard.querySelector('#w-username') as HTMLInputElement).value = '';
-        (formCard.querySelector('#w-email') as HTMLInputElement).value = '';
-        (formCard.querySelector('#w-password') as HTMLInputElement).value = '';
-        errorEl.style.display = 'none';
-      } catch (e: any) {
-        errorEl.textContent = e.message || 'Error al crear celador';
-        errorEl.style.display = 'block';
-      }
+    try {
+      
+      const result = await api.post<any>('/auth/register', { 
+        fullName, username, email, password, role: 'ATTENDANT' 
+      });
+      alert(`Celador ${username} creado exitosamente`);
+      (formCard.querySelector('#w-fullname') as HTMLInputElement).value = '';
+      (formCard.querySelector('#w-username') as HTMLInputElement).value = '';
+      (formCard.querySelector('#w-email') as HTMLInputElement).value = '';
+      (formCard.querySelector('#w-password') as HTMLInputElement).value = '';
+      errorEl.style.display = 'none';
+    } catch (e: any) {
+      errorEl.textContent = e.message || 'Error al crear celador';
+      errorEl.style.display = 'block';
+    }
     });
 
     main.appendChild(content);

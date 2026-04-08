@@ -44,8 +44,8 @@ public class PaymentController {
                 String ticketId = request.getTicketId();
                 String method   = request.getPaymentMethod();
 
-                TicketEntity ticket = facade.findTicket(ticketId)
-                    .orElse(null);
+                // Buscar en JPA directamente
+                TicketEntity ticket = facade.findTicketEntity(ticketId).orElse(null);
 
                 if (ticket == null) {
                     return ResponseEntity.status(404).body(
@@ -71,7 +71,7 @@ public class PaymentController {
 
                 if (paid) {
                     failureCount.set(0);
-                    TicketEntity updated = facade.findTicket(ticketId).orElse(ticket);
+                    TicketEntity updated = facade.findTicketEntity(ticketId).orElse(ticket);
                     return ResponseEntity.ok(Map.of(
                         "id",        ticketId + "-pay",
                         "ticketId",  ticketId,

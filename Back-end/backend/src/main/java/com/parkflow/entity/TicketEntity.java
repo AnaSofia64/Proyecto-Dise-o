@@ -34,6 +34,12 @@ public class TicketEntity {
     @Column
     private double amount = 0;
 
+    @Column(nullable = false)
+    private boolean released = false;
+
+    public boolean isReleased() { return released; }
+    public void setReleased(boolean released) { this.released = released; }
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

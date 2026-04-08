@@ -251,8 +251,16 @@ export class RegisterEntryPage {
   }
 
   private async handleSubmit(): Promise<void> {
-    if (!this.licensePlate || !this.selectedSpot) {
-      alert('Por favor complete todos los campos');
+    // Limpiar error anterior
+    const existingError = document.getElementById('entry-error');
+    if (existingError) existingError.remove();
+
+    if (!this.licensePlate) {
+      this.showError('Ingresa la placa del vehículo');
+      return;
+    }
+    if (!this.selectedSpot) {
+      this.showError('Selecciona una plaza disponible');
       return;
     }
 
@@ -268,11 +276,44 @@ export class RegisterEntryPage {
       });
 
       storage.set('current_ticket', ticket);
-      router.navigate('/attendant/payment');
-    } catch (error) {
+      router.navigate('/attendant/reports');
+    } catch (error: any) {
       btn.disabled = false;
       btn.innerHTML = `${icons.qr} Generar Ticket de Entrada`;
-      alert(error instanceof Error ? error.message : 'Error al crear ticket');
+
+      const msg = error?.message || 'Error al crear ticket';
+      
+      this.showError(msg.includes('400') || msg.includes('Placa') 
+        ? 'Esta placa no está registrada en el sistema. El usuario debe registrarla primero desde su cuenta.' 
+        : msg);
     }
+  }
+
+  private showError(message: string): void {
+    const existingError = document.getElementById('entry-error');
+    if (existingError) existingError.remove();
+
+    const errorEl = document.createElement('div');
+    errorEl.id = 'entry-error';
+    errorEl.style.cssText = `
+      margin-top: 1rem;
+      padding: 0.875rem 1rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-md);
+      color: var(--red);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    `;
+    errorEl.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top: 1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>${message}</span>
+    `;
+
+    
+    const btnWrapper = document.querySelector('.btn-primary')?.parentElement;
+    if (btnWrapper) btnWrapper.after(errorEl);
   }
 }

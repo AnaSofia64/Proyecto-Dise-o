@@ -2,10 +2,13 @@ package com.parkflow.controller;
 
 import com.parkflow.entity.TicketEntity;
 import com.parkflow.entity.UserEntity;
+import com.parkflow.entity.UserPlateEntity;
 import com.parkflow.repository.jpa.TicketJpaRepository;
 import com.parkflow.repository.jpa.UserJpaRepository;
+import com.parkflow.repository.jpa.UserPlateJpaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,85 +21,111 @@ public class UserController {
 
     private final UserJpaRepository userRepo;
     private final TicketJpaRepository ticketRepo;
+    private final UserPlateJpaRepository plateRepo;
 
-    public UserController(UserJpaRepository userRepo, TicketJpaRepository ticketRepo) {
-        this.userRepo = userRepo;
+    public UserController(UserJpaRepository userRepo,
+                          TicketJpaRepository ticketRepo,
+                          UserPlateJpaRepository plateRepo) {
+        this.userRepo   = userRepo;
         this.ticketRepo = ticketRepo;
+        this.plateRepo  = plateRepo;
     }
 
-    /** GET /api/users/me — perfil del usuario actual */
     @GetMapping("/me")
     public ResponseEntity<?> getMe(Authentication auth) {
-        return userRepo.findByUsername(auth.getName())
-            .map(u -> ResponseEntity.ok(Map.of(
+        return userRepo.findByUsername(auth.getName()).map(u -> {
+            List<Map<String, String>> plates = plateRepo.findByUserId(u.getId())
+                .stream()
+                .map(p -> Map.of(
+                    "plate",       p.getPlate(),
+                    "vehicleType", p.getVehicleType()
+                )).toList();
+
+            return ResponseEntity.ok(Map.of(
                 "id",            u.getId(),
                 "username",      u.getUsername(),
                 "email",         u.getEmail(),
                 "fullName",      u.getFullName(),
                 "role",          u.getRole(),
-                "licensePlates", u.getLicensePlates()
-            )))
-            .orElse(ResponseEntity.status(404).build());
-    }
-
-    /** POST /api/users/plates — agregar placa */
-    @PostMapping("/plates")
-    public ResponseEntity<?> addPlate(@RequestBody Map<String, String> body,
-                                    Authentication auth) {
-        String rawPlate = body.get("plate");
-        if (rawPlate == null || rawPlate.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Placa requerida"));
-        }
-
-        final String plate = rawPlate.toUpperCase().trim();
-
-        return userRepo.findByUsername(auth.getName()).map(user -> {
-            if (!user.getLicensePlates().contains(plate)) {
-                user.getLicensePlates().add(plate);
-                userRepo.save(user);
-            }
-            return ResponseEntity.ok(Map.of(
-                "message", "Placa agregada",
-                "plates",  user.getLicensePlates()
+                "licensePlates", plates
             ));
         }).orElse(ResponseEntity.status(404).build());
     }
 
-    /** DELETE /api/users/plates/{plate} — quitar placa */
+    @PostMapping("/plates")
+    public ResponseEntity<?> addPlate(@RequestBody Map<String, String> body,
+                                      Authentication auth) {
+        String rawPlate     = body.get("plate");
+        String vehicleType  = body.get("vehicleType");
+
+        if (rawPlate == null || rawPlate.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Placa requerida"));
+        }
+        if (vehicleType == null || vehicleType.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Tipo de vehículo requerido"));
+        }
+
+        final String plate = rawPlate.toUpperCase().trim();
+        final List<String> validTypes = List.of("CAR", "MOTORCYCLE", "TRUCK");
+        if (!validTypes.contains(vehicleType.toUpperCase())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Tipo inválido. Use CAR, MOTORCYCLE o TRUCK"));
+        }
+
+        return userRepo.findByUsername(auth.getName()).map(user -> {
+            if (plateRepo.existsByUserIdAndPlate(user.getId(), plate)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Esa placa ya está registrada"));
+            }
+
+            plateRepo.save(new UserPlateEntity(user.getId(), plate, vehicleType.toUpperCase()));
+
+            List<Map<String, String>> plates = plateRepo.findByUserId(user.getId())
+                .stream()
+                .map(p -> Map.of("plate", p.getPlate(), "vehicleType", p.getVehicleType()))
+                .toList();
+
+            return ResponseEntity.ok(Map.of("message", "Placa agregada", "plates", plates));
+        }).orElse(ResponseEntity.status(404).build());
+    }
+
+    @Transactional
     @DeleteMapping("/plates/{plate}")
     public ResponseEntity<?> removePlate(@PathVariable String plate,
                                           Authentication auth) {
         return userRepo.findByUsername(auth.getName()).map(user -> {
-            user.getLicensePlates().remove(plate.toUpperCase());
-            userRepo.save(user);
-            return ResponseEntity.ok(Map.of(
-                "message", "Placa eliminada",
-                "plates",  user.getLicensePlates()
-            ));
+            plateRepo.deleteByUserIdAndPlate(user.getId(), plate.toUpperCase());
+
+            List<Map<String, String>> plates = plateRepo.findByUserId(user.getId())
+                .stream()
+                .map(p -> Map.of("plate", p.getPlate(), "vehicleType", p.getVehicleType()))
+                .toList();
+
+            return ResponseEntity.ok(Map.of("message", "Placa eliminada", "plates", plates));
         }).orElse(ResponseEntity.status(404).build());
     }
 
-    /** GET /api/users/tickets — tickets del usuario (últimos 30 días) */
     @GetMapping("/tickets")
     public ResponseEntity<?> getMyTickets(Authentication auth) {
         return userRepo.findByUsername(auth.getName()).map(user -> {
-            if (user.getLicensePlates().isEmpty()) {
-                return ResponseEntity.ok(List.of());
-            }
+            List<String> plates = plateRepo.findByUserId(user.getId())
+                .stream()
+                .map(UserPlateEntity::getPlate)
+                .toList();
+
+            if (plates.isEmpty()) return ResponseEntity.ok(List.of());
 
             LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
             List<TicketEntity> tickets = ticketRepo
-                .findByLicensePlateInAndCreatedAtAfter(user.getLicensePlates(), cutoff);
+                .findByLicensePlateInAndCreatedAtAfter(plates, cutoff);
 
             List<Map<String, Object>> response = tickets.stream()
                 .map(t -> Map.<String, Object>of(
-                    "id",          t.getId(),
+                    "id",           t.getId(),
                     "licensePlate", t.getLicensePlate(),
-                    "spotId",      t.getSpotId(),
-                    "entryTime",   t.getEntryTime().toString(),
-                    "exitTime",    t.getExitTime() != null ? t.getExitTime().toString() : "",
-                    "status",      t.isPaid() ? "PAID" : "ACTIVE",
-                    "amount",      t.getAmount(),
+                    "spotId",       t.getSpotId(),
+                    "entryTime",    t.getEntryTime().toString(),
+                    "exitTime",     t.getExitTime() != null ? t.getExitTime().toString() : "",
+                    "status",       t.isPaid() ? "PAID" : "ACTIVE",
+                    "amount",       t.getAmount(),
                     "vehicle", Map.of(
                         "licensePlate", t.getLicensePlate(),
                         "type",         t.getVehicleType()
@@ -110,5 +139,23 @@ public class UserController {
 
             return ResponseEntity.ok(response);
         }).orElse(ResponseEntity.status(404).build());
+    }
+
+    @GetMapping("/plates/check/{plate}")
+    public ResponseEntity<?> checkPlate(@PathVariable String plate) {
+        String upperPlate = plate.toUpperCase().trim();
+        boolean exists = plateRepo.existsByPlate(upperPlate);
+        if (!exists) {
+            return ResponseEntity.status(404).body(Map.of(
+                "error", "Placa no registrada en el sistema",
+                "plate", upperPlate
+            ));
+        }
+        UserPlateEntity found = plateRepo.findByPlate(upperPlate).orElseThrow();
+        return ResponseEntity.ok(Map.of(
+            "plate",       found.getPlate(),
+            "vehicleType", found.getVehicleType(),
+            "exists",      true
+        ));
     }
 }

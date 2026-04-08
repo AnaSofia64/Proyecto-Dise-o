@@ -188,8 +188,11 @@ export class AdminPanel {
       }
 
       try {
-        const newWorker = await api.post<any>('/auth/workers', { fullName, username, password });
-        this.workers.push(newWorker);
+        await api.post<any>('/auth/register', { 
+          fullName, username, email: `${username}@parkflow.com`, password, role: 'ATTENDANT'
+        });
+       
+        this.workers.push({ username, fullName, role: 'ATTENDANT' });
         // Actualizar lista
         const list = card.querySelector('#workers-list') as HTMLElement;
         list.innerHTML = this.workers.map(w => this.workerRow(w)).join('');
@@ -249,4 +252,4 @@ export class AdminPanel {
       });
     });
   }
-}x
+}

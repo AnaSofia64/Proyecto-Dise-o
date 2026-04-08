@@ -1,122 +1,136 @@
 package com.parkflow.controller;
 
 import com.parkflow.dto.LoginRequest;
-import com.parkflow.dto.LoginResponse;
+import com.parkflow.entity.UserEntity;
+import com.parkflow.repository.jpa.UserJpaRepository;
 import com.parkflow.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final JwtUtil jwtUtil;
+    private final UserJpaRepository userRepo;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    // Workers creados dinámicamente por el admin (en memoria)
-    private static final ConcurrentHashMap<String, String[]> dynamicUsers = new ConcurrentHashMap<>();
-
-    public AuthController(JwtUtil jwtUtil) {
+    public AuthController(JwtUtil jwtUtil, UserJpaRepository userRepo) {
         this.jwtUtil = jwtUtil;
+        this.userRepo = userRepo;
+        this.passwordEncoder = new BCryptPasswordEncoder();
+        initDefaultUsers();
+    }
+
+    private void initDefaultUsers() {
+        if (!userRepo.existsByUsername("celador")) {
+            userRepo.save(new UserEntity(
+                "celador", "celador@parkflow.com",
+                passwordEncoder.encode("1234"),
+                "ATTENDANT", "Celador Principal"
+            ));
+        }
+        if (!userRepo.existsByUsername("admin")) {
+            userRepo.save(new UserEntity(
+                "admin", "admin@parkflow.com",
+                passwordEncoder.encode("admin123"),
+                "ADMIN", "Administrador"
+            ));
+        }
+        if (!userRepo.existsByUsername("usuario")) {
+            userRepo.save(new UserEntity(
+                "usuario", "usuario@parkflow.com",
+                passwordEncoder.encode("user123"),
+                "USER", "Usuario Demo"
+            ));
+        }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        // Usuarios base hardcodeados
-        Map<String, String[]> baseUsers = Map.of(
-            "celador",  new String[]{"1234",     "ATTENDANT", "Celador Demo"},
-            "admin",    new String[]{"admin123",  "ADMIN",     "Administrador"},
-            "usuario",  new String[]{"user123",   "USER",      "Usuario Demo"}
-        );
+        Optional<UserEntity> userOpt = userRepo.findByUsername(request.getUsername());
 
-        String[] credentials = baseUsers.get(request.getUsername());
-        if (credentials == null) {
-            credentials = dynamicUsers.get(request.getUsername());
-        }
-
-        if (credentials == null || !credentials[0].equals(request.getPassword())) {
+        if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
             return ResponseEntity.status(401).body(Map.of("error", "Credenciales inválidas"));
         }
 
-        String role     = credentials[1];
-        String fullName = credentials.length > 2 ? credentials[2] : request.getUsername();
-        String token    = jwtUtil.generateToken(request.getUsername(), role);
-
-        Map<String, Object> user = Map.of(
-            "id",       request.getUsername(),
-            "username", request.getUsername(),
-            "fullName", fullName,
-            "email",    request.getUsername() + "@parkflow.com",
-            "role",     role
-        );
-
-        return ResponseEntity.ok(Map.of("token", token, "user", user));
-    }
-
-    // POST /api/auth/workers — admin crea un celador
-    @PostMapping("/workers")
-    public ResponseEntity<?> createWorker(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-        String fullName = body.get("fullName");
-
-        if (username == null || password == null || fullName == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "username, password y fullName son requeridos"));
-        }
-
-        if (dynamicUsers.containsKey(username)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "El usuario ya existe"));
-        }
-
-        dynamicUsers.put(username, new String[]{password, "ATTENDANT", fullName});
+        UserEntity user = userOpt.get();
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
         return ResponseEntity.ok(Map.of(
-            "username", username,
-            "fullName", fullName,
-            "role",     "ATTENDANT",
-            "email",    username + "@parkflow.com"
+            "token", token,
+            "user", Map.of(
+                "id",       user.getId(),
+                "username", user.getUsername(),
+                "email",    user.getEmail(),
+                "fullName", user.getFullName(),
+                "role",     user.getRole()
+            )
         ));
     }
 
-    // GET /api/auth/workers — admin lista celadores
-    @GetMapping("/workers")
-    public ResponseEntity<?> listWorkers() {
-        List<Map<String, String>> workers = new ArrayList<>();
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String email    = request.get("email");
+        String password = request.get("password");
+        String fullName = request.get("fullName");
+        String role     = request.getOrDefault("role", "USER");
 
-        // Celador base
-        workers.add(Map.of(
-            "username", "celador",
-            "fullName", "Celador Demo",
-            "role",     "ATTENDANT",
-            "email",    "celador@parkflow.com"
+        if (username == null || email == null || password == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Faltan campos requeridos"));
+        }
+        if (userRepo.existsByUsername(username)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El usuario ya existe"));
+        }
+        if (userRepo.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El email ya está registrado"));
+        }
+        if (!"USER".equals(role) && !"ATTENDANT".equals(role)) {
+            role = "USER";
+        }
+
+        userRepo.save(new UserEntity(
+            username, email,
+            passwordEncoder.encode(password),
+            role,
+            fullName != null ? fullName : username
         ));
 
-        // Celadores creados dinámicamente
-        dynamicUsers.forEach((username, creds) -> {
-            if ("ATTENDANT".equals(creds[1])) {
-                workers.add(Map.of(
-                    "username", username,
-                    "fullName", creds.length > 2 ? creds[2] : username,
-                    "role",     "ATTENDANT",
-                    "email",    username + "@parkflow.com"
-                ));
-            }
-        });
+        return ResponseEntity.ok(Map.of(
+            "message", "Usuario registrado exitosamente",
+            "username", username,
+            "role",     role
+        ));
+    }
 
+    @GetMapping("/workers")
+    public ResponseEntity<?> listWorkers() {
+        List<Map<String, Object>> workers = userRepo.findAll().stream()
+            .filter(u -> "ATTENDANT".equals(u.getRole()))
+            .map(u -> Map.<String, Object>of(
+                "id",       u.getId(),
+                "username", u.getUsername(),
+                "fullName", u.getFullName(),
+                "email",    u.getEmail(),
+                "role",     u.getRole()
+            )).toList();
         return ResponseEntity.ok(workers);
     }
 
-    // DELETE /api/auth/workers/{username} — admin elimina celador
     @DeleteMapping("/workers/{username}")
     public ResponseEntity<?> deleteWorker(@PathVariable String username) {
         if ("celador".equals(username)) {
             return ResponseEntity.badRequest().body(Map.of("error", "No se puede eliminar el celador base"));
         }
-        dynamicUsers.remove(username);
-        return ResponseEntity.ok(Map.of("deleted", username));
+        return userRepo.findByUsername(username).map(u -> {
+            userRepo.delete(u);
+            return ResponseEntity.ok(Map.of("deleted", username));
+        }).orElse(ResponseEntity.status(404).build());
     }
 }

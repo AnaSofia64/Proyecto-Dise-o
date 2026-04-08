@@ -11,6 +11,8 @@ import java.util.List;
 @Repository
 public interface TicketJpaRepository extends JpaRepository<TicketEntity, String> {
     List<TicketEntity> findByPaid(boolean paid);
+    List<TicketEntity> findByPaidAndReleased(boolean paid, boolean released);
+    List<TicketEntity> findByPaidAndExitTimeIsNull(boolean paid);
     List<TicketEntity> findByCreatedBy(String createdBy);
     List<TicketEntity> findByLicensePlate(String licensePlate);
     List<TicketEntity> findByLicensePlateIn(List<String> plates);

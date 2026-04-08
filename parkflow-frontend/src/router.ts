@@ -13,7 +13,6 @@ const pages = {
   register: () => import('./pages/RegisterPage.js').then(m => m.RegisterPage),
   attendantDashboard: () => import('./pages/AttendantDashboard.js').then(m => m.AttendantDashboard),
   registerEntry: () => import('./pages/RegisterEntryPage.js').then(m => m.RegisterEntryPage),
-  processPayment: () => import('./pages/ProcessPaymentPage.js').then(m => m.ProcessPaymentPage),
   attendantReports: () => import('./pages/AttendantReportsPage.ts').then(m => m.AttendantReportsPage),
   userDashboard: () => import('./pages/UserDashboard.js').then(m => m.UserDashboard),
   ticket: () => import('./pages/TicketPage.js').then(m => m.TicketPage),
@@ -42,11 +41,6 @@ class Router {
     {
       path: '/attendant/entry',
       handler: () => this.renderPage('registerEntry'),
-      roles: ['ATTENDANT', 'ADMIN']
-    },
-    {
-      path: '/attendant/payment',
-      handler: () => this.renderPage('processPayment'),
       roles: ['ATTENDANT', 'ADMIN']
     },
     {

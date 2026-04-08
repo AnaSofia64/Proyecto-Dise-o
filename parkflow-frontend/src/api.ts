@@ -160,8 +160,8 @@ export const userApi = {
   getMe: () =>
     api.get<User>('/users/me'),
 
-  addPlate: (plate: string) =>
-    api.post<{ message: string; plates: string[] }>('/users/plates', { plate }),
+  addPlate: (plate: string, vehicleType: string) =>
+  api.post<{ message: string; plates: any[] }>('/users/plates', { plate, vehicleType }),
 
   removePlate: (plate: string) =>
     api.delete<{ message: string; plates: string[] }>(`/users/plates/${plate}`),
