@@ -251,20 +251,35 @@ private async buildPlatesCard(card: HTMLElement): Promise<void> {
 private plateRow(p: any): string {
   const typeLabel: Record<string, string> = { CAR: 'Carro', MOTORCYCLE: 'Moto', TRUCK: 'Camión' };
   return `
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: var(--bg-input); border-radius: var(--radius-md);">
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem;">🚗</div>
-        <div>
-          <p style="font-weight: 600; letter-spacing: 0.05em;">${p.plate}</p>
-          <p style="color: var(--text-muted); font-size: 0.75rem;">${typeLabel[p.vehicleType] || p.vehicleType}</p>
+    <div style="background: var(--bg-input); border-radius: var(--radius-md); padding: 0.75rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem;">🚗</div>
+          <div>
+            <p style="font-weight: 600; letter-spacing: 0.05em;">${p.plate}</p>
+            <p style="color: var(--text-muted); font-size: 0.75rem;">${typeLabel[p.vehicleType] || p.vehicleType}</p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button class="btn-show-qr" data-plate="${p.plate}" data-type="${p.vehicleType}"
+            style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.35rem 0.7rem; cursor: pointer; font-size: 0.75rem; color: var(--text-secondary);">
+            📱 QR
+          </button>
+          <button class="btn-delete-plate" data-plate="${p.plate}"
+            style="background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.25rem; padding: 0.25rem;">🗑</button>
         </div>
       </div>
-      <button class="btn-delete-plate" data-plate="${p.plate}" style="background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.25rem; padding: 0.25rem;">🗑</button>
+      <div class="qr-container" data-plate="${p.plate}" style="display: none; margin-top: 0.75rem; text-align: center; padding: 1rem; background: white; border-radius: var(--radius-md);">
+        <canvas class="qr-canvas" style="display: block; margin: 0 auto;"></canvas>
+        <p style="color: #333; font-size: 0.75rem; margin-top: 0.5rem; font-family: monospace;">${p.plate} · ${typeLabel[p.vehicleType] || p.vehicleType}</p>
+        <p style="color: #888; font-size: 0.7rem; margin-top: 0.25rem;">Muestra este QR al celador para registrar tu entrada</p>
+      </div>
     </div>
   `;
 }
 
 private attachPlateDeleteListeners(card: HTMLElement): void {
+  // Eliminar placa
   card.querySelectorAll('.btn-delete-plate').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const plate = (e.currentTarget as HTMLElement).dataset.plate!;
@@ -275,6 +290,44 @@ private attachPlateDeleteListeners(card: HTMLElement): void {
         this.buildPlatesCard(card);
       } catch {
         alert('Error al eliminar placa');
+      }
+    });
+  });
+
+  // Mostrar/ocultar QR
+  card.querySelectorAll('.btn-show-qr').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const el = e.currentTarget as HTMLElement;
+      const plate = el.dataset.plate!;
+      const vehicleType = el.dataset.type!;
+      const container = card.querySelector(`.qr-container[data-plate="${plate}"]`) as HTMLElement;
+
+      if (!container) return;
+
+      const isVisible = container.style.display !== 'none';
+      if (isVisible) {
+        container.style.display = 'none';
+        el.textContent = '📱 QR';
+        return;
+      }
+
+      container.style.display = 'block';
+      el.textContent = '🔼 Ocultar';
+
+      // Generar QR solo si el canvas está vacío
+      const canvas = container.querySelector('.qr-canvas') as HTMLCanvasElement;
+      if (canvas && canvas.width === 0) {
+        try {
+          const QRCode = await import('qrcode');
+          const qrData = JSON.stringify({ plate, vehicleType });
+          await QRCode.toCanvas(canvas, qrData, {
+            width: 160,
+            margin: 1,
+            color: { dark: '#000000', light: '#ffffff' }
+          });
+        } catch (err) {
+          console.error('Error generando QR:', err);
+        }
       }
     });
   });
