@@ -1,0 +1,54 @@
+name: ParkFlow CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Compilar backend
+        run: |
+          cd Back-end/backend
+          ./mvnw clean compile -q
+
+      - name: Correr pruebas unitarias
+        run: |
+          cd Back-end/backend
+          ./mvnw test
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Instalar Newman
+        run: npm install -g newman
+
+      - name: Correr pruebas de API
+        run: |
+          newman run docs/parkflow-collection.json \
+            --env-var "token=" \
+            --env-var "ticketId=" \
+            --reporter-cli-no-success-assertions
+        continue-on-error: true
+
+      - name: Publicar resultados de pruebas
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: Back-end/backend/target/surefire-reports/
