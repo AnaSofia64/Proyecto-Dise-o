@@ -19,11 +19,20 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: maven
+
+      - name: Dar permisos al wrapper de Maven
+        run: chmod +x Back-end/backend/mvnw
 
       - name: Compilar backend
         run: |
           cd Back-end/backend
           ./mvnw clean compile -q
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Correr pruebas unitarias
         run: |
