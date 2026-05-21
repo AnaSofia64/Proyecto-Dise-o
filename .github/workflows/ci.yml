@@ -44,16 +44,34 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
+      - name: Levantar backend en background
+        run: |
+          cd Back-end/backend
+          ./mvnw spring-boot:run &
+          echo "Esperando que el backend arranque..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "Backend listo en intento $i"
+              break
+            fi
+            echo "Intento $i/30..."
+            sleep 3
+          done
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
       - name: Instalar Newman
         run: npm install -g newman
 
-      - name: Correr pruebas de API
+      - name: Correr pruebas de API con Newman
         run: |
           newman run docs/parkflow-collection.json \
             --env-var "token=" \
             --env-var "ticketId=" \
-            --reporter-cli-no-success-assertions
-        continue-on-error: true
+            --reporters cli
 
       - name: Publicar resultados de pruebas
         uses: actions/upload-artifact@v4
