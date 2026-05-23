@@ -110,19 +110,19 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 			<plugin>
-				<groupId>org.owasp</groupId>
-				<artifactId>dependency-check-maven</artifactId>
-				<version>10.0.3</version>
-				<configuration>
-					<failBuildOnCVSS>11</failBuildOnCVSS>
-					<outputDirectory>${project.build.directory}/dependency-check</outputDirectory>
-					<formats>
-						<format>HTML</format>
-						<format>JSON</format>
-					</formats>
-					<nvdApiDelay>6000</nvdApiDelay>
-				</configuration>
-			</plugin>
+			<groupId>org.owasp</groupId>
+			<artifactId>dependency-check-maven</artifactId>
+			<version>10.0.3</version>
+			<configuration>
+				<failBuildOnCVSS>11</failBuildOnCVSS>
+				<outputDirectory>${project.build.directory}/dependency-check</outputDirectory>
+				<formats>
+					<format>HTML</format>
+					<format>JSON</format>
+				</formats>
+				<nvdApiDelay>6000</nvdApiDelay>
+			</configuration>
+		</plugin>
 		</plugins>
 		
 	</build>

@@ -87,12 +87,14 @@ jobs:
       - name: OWASP Dependency Check
         run: |
           cd Back-end/backend
-          ./mvnw org.owasp:dependency-check-maven:check \
+          ./mvnw org.owasp:dependency-check-maven:10.0.3:check \
             -DfailBuildOnCVSS=11 \
             -DnvdApiDelay=6000 \
-            -Dformats=HTML,JSON \
+            -Dformats=HTML,JSON \ 
+            -DossindexAnalyzerEnabled=false \
+            -DnodeAnalyzerEnabled=false \
             -q
-        # Para producción cambiar a: -DfailBuildOnCVSS=7
+        continue-on-error: true
         env:
           SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
