@@ -31,19 +31,24 @@
       }
     },
     {
-      "name": "02 - Get Spots",
+      "name": "02 - Get Available Spot",
       "event": [
         {
           "listen": "test",
           "script": {
-            "exec": ["pm.test('Spots OK', () => pm.response.to.have.status(200));"]
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Spots disponibles OK', () => pm.response.to.have.status(200));",
+              "pm.test('Hay al menos un spot disponible', () => pm.expect(res.length).to.be.above(0));",
+              "pm.environment.set('spotId', res[0].id);"
+            ]
           }
         }
       ],
       "request": {
         "method": "GET",
         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-        "url": {"raw": "http://localhost:8080/api/spots/stats", "host": ["localhost"], "port": "8080", "path": ["api", "spots", "stats"]}
+        "url": {"raw": "http://localhost:8080/api/spots/available?type=CAR", "host": ["localhost"], "port": "8080", "path": ["api", "spots", "available"], "query": [{"key": "type", "value": "CAR"}]}
       }
     },
     {
@@ -69,7 +74,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\"licensePlate\": \"NEWMAN1\", \"vehicleType\": \"CAR\", \"spotId\": \"H-01\"}"
+          "raw": "{\"licensePlate\": \"NEWMAN1\", \"vehicleType\": \"CAR\", \"spotId\": \"{{spotId}}\"}"
         },
         "url": {"raw": "http://localhost:8080/api/tickets", "host": ["localhost"], "port": "8080", "path": ["api", "tickets"]}
       }
@@ -120,7 +125,32 @@
       }
     },
     {
-      "name": "06 - Health Check",
+      "name": "06 - Release Spot",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Plaza liberada OK', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {"raw": "http://localhost:8080/api/tickets/{{ticketId}}/release", "host": ["localhost"], "port": "8080", "path": ["api", "tickets", "{{ticketId}}", "release"]}
+      }
+    },
+    {
+      "name": "07 - Health Check",
       "event": [
         {
           "listen": "test",
@@ -139,12 +169,14 @@
       }
     },
     {
-      "name": "07 - Sin Token 403",
+      "name": "08 - Sin Token 403",
       "event": [
         {
           "listen": "test",
           "script": {
-            "exec": ["pm.test('Sin token retorna 403', () => pm.response.to.have.status(403));"]
+            "exec": [
+              "pm.test('Sin token retorna 403', () => pm.response.to.have.status(403));"
+            ]
           }
         }
       ],
