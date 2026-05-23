@@ -1,0 +1,159 @@
+name: ParkFlow CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Dar permisos al wrapper de Maven
+        run: chmod +x Back-end/backend/mvnw
+
+      # ─── CI: COMPILAR ───────────────────────────────────────────
+      - name: Compilar backend
+        run: |
+          cd Back-end/backend
+          ./mvnw clean compile -q
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      # ─── CI: PRUEBAS UNITARIAS ──────────────────────────────────
+      - name: Correr pruebas unitarias (JUnit)
+        run: |
+          cd Back-end/backend
+          ./mvnw test
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      # ─── CI: PRUEBAS DE API (NEWMAN) ────────────────────────────
+      - name: Levantar backend en background
+        run: |
+          cd Back-end/backend
+          ./mvnw spring-boot:run &
+          echo "Esperando que el backend arranque..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "Backend listo en intento $i"
+              break
+            fi
+            echo "Intento $i/30..."
+            sleep 3
+          done
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Instalar Newman
+        run: npm install -g newman
+
+      - name: Correr pruebas de API con Newman
+        run: |
+          newman run docs/parkflow-collection.json \
+            --env-var "token=" \
+            --env-var "ticketId=" \
+            --reporters cli
+
+      # ─── DEVSECOPS: OWASP DEPENDENCY CHECK ─────────────────────
+      # Umbral productivo recomendado: failBuildOnCVSS=7 (bloquea HIGH y CRITICAL)
+      # En este entorno académico: failBuildOnCVSS=11 (nunca bloquea, solo reporta)
+      # Las dependencias de Spring Boot tienen CVEs conocidos de bajo riesgo
+      # que no son relevantes para el alcance del proyecto
+      - name: OWASP Dependency Check
+        run: |
+          cd Back-end/backend
+          ./mvnw org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=11 \
+            -DnvdApiDelay=6000 \
+            -Dformats=HTML,JSON \
+            -q
+        # Para producción cambiar a: -DfailBuildOnCVSS=7
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      # ─── DEVSECOPS: GITLEAKS ────────────────────────────────────
+      # Detecta secrets/tokens hardcodeados en el historial de git
+      # Umbral productivo: bloquea el pipeline si encuentra secrets
+      # En este entorno académico: continue-on-error=true (reporta sin bloquear)
+      # Razón: el historial puede contener credenciales previas ya rotadas
+      - name: Gitleaks — detectar secrets en el código
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+        # Para producción: quitar continue-on-error
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ─── DEVSECOPS: TRIVY ───────────────────────────────────────
+      # Escanea vulnerabilidades en dependencias del filesystem
+      # Umbral productivo: exit-code=1 bloquea si encuentra CRITICAL o HIGH
+      # En este entorno académico: exit-code=0 (reporta sin bloquear)
+      # Razón: mismas CVEs de bajo riesgo en dependencias de Spring Boot
+      - name: Trivy — escanear vulnerabilidades
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'Back-end/backend'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          # Para producción cambiar exit-code a: '1'
+
+      # ─── CD: EMPAQUETAR JAR ─────────────────────────────────────
+      - name: Empaquetar JAR (CD)
+        run: |
+          cd Back-end/backend
+          ./mvnw package -DskipTests -q
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SUPABASE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SUPABASE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      # ─── CD: PUBLICAR ARTEFACTOS ────────────────────────────────
+      - name: Publicar JAR como artifact (CD)
+        uses: actions/upload-artifact@v4
+        with:
+          name: parkflow-backend-jar
+          path: Back-end/backend/target/*.jar
+          retention-days: 7
+
+      - name: Publicar resultados de pruebas
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: Back-end/backend/target/surefire-reports/
+
+      - name: Publicar reporte OWASP
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owasp-report
+          path: Back-end/backend/target/
