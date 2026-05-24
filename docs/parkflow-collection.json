@@ -1,0 +1,190 @@
+{
+  "info": {
+    "name": "ParkFlow API",
+    "_postman_id": "parkflow-api-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Login Celador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.environment.set('token', res.token);",
+              "pm.test('Login exitoso', () => pm.response.to.have.status(200));",
+              "pm.test('Token recibido', () => pm.expect(res.token).to.be.a('string'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"celador\", \"password\": \"1234\"}"
+        },
+        "url": {"raw": "http://localhost:8080/api/auth/login", "host": ["localhost"], "port": "8080", "path": ["api", "auth", "login"]}
+      }
+    },
+    {
+      "name": "02 - Get Available Spot",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.test('Spots disponibles OK', () => pm.response.to.have.status(200));",
+              "pm.test('Hay al menos un spot disponible', () => pm.expect(res.length).to.be.above(0));",
+              "pm.environment.set('spotId', res[0].id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "http://localhost:8080/api/spots/available?type=CAR", "host": ["localhost"], "port": "8080", "path": ["api", "spots", "available"], "query": [{"key": "type", "value": "CAR"}]}
+      }
+    },
+    {
+      "name": "03 - Create Ticket",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "pm.environment.set('ticketId', res.id);",
+              "pm.test('Ticket creado', () => pm.response.to.have.status(200));",
+              "pm.test('Ticket tiene ID', () => pm.expect(res.id).to.be.a('string'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"licensePlate\": \"NEWMAN1\", \"vehicleType\": \"CAR\", \"spotId\": \"{{spotId}}\"}"
+        },
+        "url": {"raw": "http://localhost:8080/api/tickets", "host": ["localhost"], "port": "8080", "path": ["api", "tickets"]}
+      }
+    },
+    {
+      "name": "04 - Get Active Tickets",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Tickets activos OK', () => pm.response.to.have.status(200));",
+              "pm.test('Es un array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "http://localhost:8080/api/tickets/active", "host": ["localhost"], "port": "8080", "path": ["api", "tickets", "active"]}
+      }
+    },
+    {
+      "name": "05 - Process Payment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Pago procesado', () => pm.response.to.have.status(200));",
+              "pm.test('Status SUCCESS', () => pm.expect(pm.response.json().status).to.eql('SUCCESS'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"ticketId\": \"{{ticketId}}\", \"paymentMethod\": \"CASH\"}"
+        },
+        "url": {"raw": "http://localhost:8080/api/payments", "host": ["localhost"], "port": "8080", "path": ["api", "payments"]}
+      }
+    },
+    {
+      "name": "06 - Release Spot",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Plaza liberada OK', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {"raw": "http://localhost:8080/api/tickets/{{ticketId}}/release", "host": ["localhost"], "port": "8080", "path": ["api", "tickets", "{{ticketId}}", "release"]}
+      }
+    },
+    {
+      "name": "07 - Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Health UP', () => pm.response.to.have.status(200));",
+              "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {"raw": "http://localhost:8080/actuator/health", "host": ["localhost"], "port": "8080", "path": ["actuator", "health"]}
+      }
+    },
+    {
+      "name": "08 - Sin Token 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Sin token retorna 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {"raw": "http://localhost:8080/api/spots", "host": ["localhost"], "port": "8080", "path": ["api", "spots"]}
+      }
+    }
+  ]
+}
