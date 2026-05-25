@@ -41,8 +41,6 @@ public class PaymentController {
 
         for (int attempt = 0; attempt < backoffs.length; attempt++) {
             try {
-                throw new RuntimeException("Fallo simulado para demo Circuit Breaker");
-
                 String ticketId = request.getTicketId();
                 String method   = request.getPaymentMethod();
 
