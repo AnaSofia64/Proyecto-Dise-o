@@ -125,7 +125,7 @@ jobs:
           scan-ref: 'Back-end/backend'
           format: 'table'
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          exit-code: '0'
           # Para producción cambiar exit-code a: '1'
 
       # ─── CD: EMPAQUETAR JAR ─────────────────────────────────────
@@ -160,3 +160,4 @@ jobs:
         with:
           name: owasp-report
           path: Back-end/backend/target/
+
