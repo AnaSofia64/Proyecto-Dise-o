@@ -2,8 +2,8 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export const options = {
-  vus: 50,
-  duration: '30s',
+  vus: 90,
+  duration: '20s',
 };
 
 const BASE_URL = 'http://localhost:8080';
