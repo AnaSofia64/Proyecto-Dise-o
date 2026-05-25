@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Informe Final — ParkFlow Entrega 3</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; line-height: 1.6; }
+
+.cover {
+  height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: white; text-align: center; page-break-after: always;
+}
+.cover h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 1rem; }
+.cover h2 { font-size: 1.5rem; font-weight: 300; margin-bottom: 3rem; opacity: 0.8; }
+.cover-badge {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+  padding: 1rem 2rem; border-radius: 8px; margin-bottom: 2rem;
+}
+.cover-badge p { font-size: 0.9rem; opacity: 0.9; margin: 0.25rem 0; }
+.cover-info { font-size: 0.85rem; opacity: 0.6; }
+
+.toc { padding: 4rem; page-break-after: always; }
+.toc h2 { font-size: 2rem; margin-bottom: 2rem; color: #0f3460; border-bottom: 3px solid #0f3460; padding-bottom: 0.5rem; }
+.toc ol { padding-left: 1.5rem; }
+.toc li { padding: 0.4rem 0; font-size: 1rem; }
+
+section { padding: 3rem 4rem; }
+section + section { border-top: 1px solid #e0e0e0; }
+.page-break { page-break-after: always; }
+
+h2.section-title {
+  font-size: 1.8rem; color: #0f3460; margin-bottom: 1.5rem;
+  border-bottom: 3px solid #0f3460; padding-bottom: 0.5rem;
+}
+h3 { font-size: 1.2rem; color: #16213e; margin: 1.5rem 0 0.75rem; }
+p { margin-bottom: 1rem; font-size: 0.95rem; }
+
+.highlight-box {
+  background: #f0f4ff; border-left: 4px solid #0f3460;
+  padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 0 8px 8px 0;
+}
+.success-box {
+  background: #f0fdf4; border-left: 4px solid #16a34a;
+  padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 0 8px 8px 0;
+}
+.warning-box {
+  background: #fffbeb; border-left: 4px solid #d97706;
+  padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 0 8px 8px 0;
+}
+
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+th { background: #0f3460; color: white; padding: 0.75rem; text-align: left; }
+td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #e0e0e0; }
+tr:nth-child(even) { background: #f8f9fa; }
+
+.badge {
+  display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 600; margin: 0.2rem;
+}
+.badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-orange { background: #fed7aa; color: #9a3412; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+
+code {
+  background: #1a1a2e; color: #a8d8a8; padding: 1rem 1.5rem;
+  display: block; border-radius: 8px; font-family: 'Courier New', monospace;
+  font-size: 0.8rem; margin: 1rem 0; overflow-x: auto; white-space: pre;
+}
+code.inline {
+  display: inline; padding: 0.1rem 0.4rem;
+  background: #f0f0f0; color: #d63384; border-radius: 4px; font-size: 0.85rem;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+.card {
+  background: #f8f9fa; border: 1px solid #e0e0e0;
+  border-radius: 8px; padding: 1.25rem;
+}
+.card h4 { color: #0f3460; margin-bottom: 0.5rem; font-size: 1rem; }
+.card p { font-size: 0.875rem; margin: 0; color: #444; }
+
+.stat-row { display: flex; gap: 1rem; margin: 1rem 0; flex-wrap: wrap; }
+.stat-box {
+  flex: 1; min-width: 120px; background: #0f3460; color: white;
+  padding: 1.25rem; border-radius: 8px; text-align: center;
+}
+.stat-box .number { font-size: 2rem; font-weight: 700; }
+.stat-box .label { font-size: 0.8rem; opacity: 0.8; }
+
+.test-result {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem; border-radius: 4px; margin: 0.25rem 0; font-size: 0.9rem;
+}
+.pass { background: #dcfce7; color: #166534; }
+.pending { background: #fef9c3; color: #854d0e; }
+
+@media print {
+  section { padding: 2rem 3rem; }
+  .cover { height: 100vh; }
+  .page-break { page-break-after: always; }
+}
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="cover">
+  <h1>🅿 ParkFlow</h1>
+  <h2>Sistema de Gestión de Parqueadero Universitario</h2>
+  <div class="cover-badge">
+    <p><strong>Informe Técnico — Entrega 3</strong></p>
+    <p>Construcción de Software con Pruebas, CI/CD y DevSecOps</p>
+    <p>Diseño y Arquitectura de Software</p>
+    <p>Mayo 2026</p>
+  </div>
+  <div class="cover-info">
+    <p>Spring Boot 3.5 · TypeScript · PostgreSQL (Supabase) · Docker</p>
+    <p>JUnit · Newman · k6 · Cypress · GitHub Actions · OWASP · Gitleaks · Trivy</p>
+  </div>
+</div>
+
+<!-- TABLA DE CONTENIDOS -->
+<div class="toc">
+  <h2>Tabla de Contenidos</h2>
+  <ol>
+    <li>Resumen Ejecutivo</li>
+    <li>Arquitectura del Sistema</li>
+    <li>Seguridad — Spring Security + JWT</li>
+    <li>Resiliencia — Circuit Breaker, Retry, Timeout</li>
+    <li>Pruebas Unitarias — JUnit + Mockito</li>
+    <li>Pruebas de API — Newman + Postman</li>
+    <li>Pruebas de Carga — k6</li>
+    <li>Pruebas de GUI — Cypress E2E</li>
+    <li>Pipeline CI/CD — GitHub Actions</li>
+    <li>DevSecOps — OWASP, Gitleaks, Trivy</li>
+    <li>Observabilidad — Prometheus, Grafana, Jaeger</li>
+    <li>Modelos 4+1 y C4</li>
+    <li>Retos y Soluciones</li>
+  </ol>
+</div>
+
+<!-- 1. RESUMEN EJECUTIVO -->
+<section id="resumen" class="page-break">
+  <h2 class="section-title">1. Resumen Ejecutivo</h2>
+
+  <p>ParkFlow es un sistema de gestión de parqueadero universitario desarrollado como proyecto final de Diseño y Arquitectura de Software. La Entrega 3 implementa el ciclo completo de construcción de software: pruebas automatizadas en todos los niveles, pipeline CI/CD funcional, prácticas DevSecOps, y observabilidad en tiempo real.</p>
+
+  <div class="stat-row">
+    <div class="stat-box"><div class="number">20</div><div class="label">Tests JUnit</div></div>
+    <div class="stat-box"><div class="number">14</div><div class="label">Assertions Newman</div></div>
+    <div class="stat-box"><div class="number">400</div><div class="label">Checks k6</div></div>
+    <div class="stat-box"><div class="number">14</div><div class="label">Tests Cypress</div></div>
+    <div class="stat-box"><div class="number">3</div><div class="label">Herramientas DevSecOps</div></div>
+    <div class="stat-box"><div class="number">15+</div><div class="label">Endpoints REST</div></div>
+  </div>
+
+  <h3>Estado del proyecto</h3>
+  <table>
+    <tr><th>Criterio</th><th>Estado</th><th>Detalle</th></tr>
+    <tr><td>Desarrollo del software</td><td><span class="badge badge-green">✅ Completo</span></td><td>Backend Spring Boot + Frontend TypeScript</td></tr>
+    <tr><td>Pruebas unitarias + carga + API</td><td><span class="badge badge-green">✅ Completo</span></td><td>JUnit 20/20, Newman 14/14, k6 400/400</td></tr>
+    <tr><td>Pruebas de GUI (Cypress)</td><td><span class="badge badge-green">✅ Completo</span></td><td>4 suites, 14 casos de prueba E2E</td></tr>
+    <tr><td>CI/CD pipeline</td><td><span class="badge badge-green">✅ Completo</span></td><td>GitHub Actions — pipeline verde</td></tr>
+    <tr><td>Docker (observabilidad)</td><td><span class="badge badge-green">✅ Completo</span></td><td>Prometheus, Grafana, Jaeger en Docker Compose</td></tr>
+    <tr><td>DevSecOps</td><td><span class="badge badge-green">✅ Completo</span></td><td>OWASP Dependency Check + Gitleaks + Trivy</td></tr>
+    <tr><td>Modelos 4+1 y C4</td><td><span class="badge badge-green">✅ Completo</span></td><td>Documentados en docs/</td></tr>
+    <tr><td>Seguridad JWT</td><td><span class="badge badge-green">✅ Completo</span></td><td>13/15 endpoints protegidos con JWT</td></tr>
+    <tr><td>Resiliencia</td><td><span class="badge badge-green">✅ Completo</span></td><td>Circuit Breaker + Retry + Timeout</td></tr>
+  </table>
+
+  <h3>Stack tecnológico</h3>
+  <div class="grid-2">
+    <div class="card"><h4>Backend</h4><p>Spring Boot 3.5 · Java 17 · Spring Security · JWT (jjwt 0.12.3) · Spring Data JPA · PostgreSQL (Supabase) · Micrometer · OpenTelemetry</p></div>
+    <div class="card"><h4>Frontend</h4><p>TypeScript puro · Vite · Sin frameworks · Fetch API con AbortController · localStorage para sesión · qrcode para QR</p></div>
+    <div class="card"><h4>Pruebas</h4><p>JUnit 5 + Mockito · Newman (Postman) · k6 · Cypress E2E · 4 suites de pruebas</p></div>
+    <div class="card"><h4>CI/CD y DevSecOps</h4><p>GitHub Actions · OWASP Dependency Check · Gitleaks · Trivy · Artifacts descargables</p></div>
+    <div class="card"><h4>Observabilidad</h4><p>Prometheus :9090 · Grafana :3001 · Jaeger :16686 · Docker Compose · OpenTelemetry OTLP gRPC</p></div>
+    <div class="card"><h4>Base de datos</h4><p>Supabase PostgreSQL · AWS us-east-2 · HikariCP pool · 4 tablas: users, spots, tickets, user_plates</p></div>
+  </div>
+</section>
+
+<!-- 2. ARQUITECTURA -->
+<section id="arquitectura" class="page-break">
+  <h2 class="section-title">2. Arquitectura del Sistema</h2>
+
+  <p>ParkFlow sigue una <strong>arquitectura orientada a servicios (SOA)</strong> donde el backend actúa como servicio proveedor de una API REST y el frontend como servicio consumidor independiente.</p>
+
+  <h3>Diagrama de arquitectura</h3>
+  <code>Frontend (TypeScript + Vite) — puerto 3000
+  LoginPage | Dashboard | TicketPage | AdminPanel
+        │
+        │ HTTP REST + JWT + AbortController (timeout)
+        ▼
+Backend (Spring Boot 3.5 — Java 17) — puerto 8080
+  ┌─────────────┐  ┌──────────────────┐  ┌──────────────────┐
+  │ JwtFilter   │  │ Controllers      │  │ GlobalException  │
+  │ SecurityCfg │→ │ Auth|Spot|Ticket │→ │ Handler          │
+  │ JwtUtil     │  │ Payment|User     │  └──────────────────┘
+  └─────────────┘  └────────┬─────────┘
+                            │
+                    ┌───────▼────────┐
+                    │ ParkingFacade  │  ← Facade Pattern
+                    └───────┬────────┘
+            ┌───────────────┼───────────────┐
+       UserJpa          SpotJpa         TicketJpa
+      Repository       Repository      Repository
+            │               │               │
+            └───────────────┼───────────────┘
+                            ▼
+            Supabase PostgreSQL (Nube AWS us-east-2)
+            users | user_plates | spots | tickets
+
+Observabilidad (Docker Compose):
+  Backend → Prometheus:9090 → Grafana:3001
+  Backend → Jaeger:16686 (OTLP gRPC :4317)</code>
+
+  <h3>Patrones de diseño aplicados</h3>
+  <table>
+    <tr><th>Patrón</th><th>Ubicación</th><th>Entrega</th></tr>
+    <tr><td>Singleton</td><td>ParkingManager</td><td>Entrega 1</td></tr>
+    <tr><td>Factory Method</td><td>VehicleFactory</td><td>Entrega 1</td></tr>
+    <tr><td>Strategy</td><td>PricingService, PaymentService</td><td>Entrega 1</td></tr>
+    <tr><td>Facade</td><td>ParkingFacade — orquesta toda la lógica de negocio</td><td>Entrega 2</td></tr>
+    <tr><td>Circuit Breaker</td><td>PaymentController — protege el servicio de pagos</td><td>Entrega 2</td></tr>
+    <tr><td>Repository</td><td>UserJpa, SpotJpa, TicketJpa repositories</td><td>Entrega 2</td></tr>
+  </table>
+
+  <h3>Roles del sistema</h3>
+  <table>
+    <tr><th>Rol</th><th>Rutas</th><th>Capacidades</th></tr>
+    <tr><td><span class="badge badge-orange">ADMIN</span></td><td>/admin/*</td><td>Panel global, CRUD celadores, estadísticas</td></tr>
+    <tr><td><span class="badge badge-blue">ATTENDANT</span></td><td>/attendant/*</td><td>Registrar entradas, ver reportes, dar salidas</td></tr>
+    <tr><td><span class="badge badge-green">USER</span></td><td>/user/*</td><td>Ver ticket activo, pagar, gestionar placas con QR</td></tr>
+  </table>
+</section>
+
+<!-- 3. SEGURIDAD -->
+<section id="seguridad" class="page-break">
+  <h2 class="section-title">3. Seguridad — Spring Security + JWT</h2>
+
+  <p>ParkFlow implementa autenticación basada en <strong>JSON Web Tokens (JWT)</strong> con Spring Security, protegiendo 13 de 15 endpoints. Las contraseñas se almacenan con BCrypt — nunca en texto plano.</p>
+
+  <h3>Flujo de autenticación</h3>
+  <div class="highlight-box">
+    <strong>1.</strong> Usuario envía username + password →
+    <strong>2.</strong> Backend valida con BCrypt →
+    <strong>3.</strong> Genera JWT firmado HMAC-SHA256 →
+    <strong>4.</strong> Frontend guarda en localStorage →
+    <strong>5.</strong> Cada request envía JWT en header Authorization: Bearer →
+    <strong>6.</strong> JwtFilter valida firma y expiración antes de llegar al controller
+  </div>
+
+  <h3>Características del token JWT</h3>
+  <table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Algoritmo de firma</td><td>HMAC-SHA256 (HS256)</td></tr>
+    <tr><td>Payload</td><td>username + role + iat (issued at) + exp (expiration)</td></tr>
+    <tr><td>Expiración</td><td>24 horas (86400000 ms)</td></tr>
+    <tr><td>Clave</td><td>Configurable vía application.properties — no hardcodeada</td></tr>
+    <tr><td>Almacenamiento frontend</td><td>localStorage del navegador</td></tr>
+  </table>
+
+  <h3>Endpoints protegidos</h3>
+  <table>
+    <tr><th>Endpoint</th><th>Requiere JWT</th><th>Rol mínimo</th></tr>
+    <tr><td>POST /api/auth/login</td><td>No</td><td>—</td></tr>
+    <tr><td>POST /api/auth/register</td><td>No</td><td>—</td></tr>
+    <tr><td>GET /api/spots</td><td>Sí</td><td>Cualquiera</td></tr>
+    <tr><td>POST /api/tickets</td><td>Sí</td><td>ATTENDANT</td></tr>
+    <tr><td>POST /api/payments</td><td>Sí</td><td>USER</td></tr>
+    <tr><td>DELETE /api/auth/workers/{u}</td><td>Sí</td><td>ADMIN</td></tr>
+    <tr><td>GET /api/users/me</td><td>Sí</td><td>Cualquiera</td></tr>
+    <tr><td>GET /actuator/prometheus</td><td>No</td><td>— (métricas públicas)</td></tr>
+  </table>
+
+  <div class="success-box">
+    <strong>Verificación en vivo:</strong> Sin token → HTTP 403. Token de celador en endpoint de admin → HTTP 403. Token válido en endpoint correcto → HTTP 200.
+  </div>
+</section>
+
+<!-- 4. RESILIENCIA -->
+<section id="resiliencia" class="page-break">
+  <h2 class="section-title">4. Resiliencia — Circuit Breaker, Retry, Timeout</h2>
+
+  <p>ParkFlow implementa tres patrones de resiliencia en el flujo de pagos — el punto más crítico del sistema — sin dependencias de librerías externas, lo que demuestra comprensión profunda de los patrones.</p>
+
+  <h3>Circuit Breaker</h3>
+  <div class="highlight-box">
+    Implementado manualmente en <code class="inline">PaymentController.java</code>. Tras 5 fallos consecutivos, abre el circuito y responde instantáneamente con HTTP 503 durante 30 segundos.
+  </div>
+  <table>
+    <tr><th>Parámetro</th><th>Valor</th></tr>
+    <tr><td>Umbral de fallos</td><td>5 fallos consecutivos (FAILURE_THRESHOLD = 5)</td></tr>
+    <tr><td>Tiempo en estado OPEN</td><td>30 segundos (CIRCUIT_TIMEOUT = 30_000)</td></tr>
+    <tr><td>Respuesta cuando OPEN</td><td>HTTP 503 con campo retryAfterMs</td></tr>
+    <tr><td>Recuperación</td><td>Automática — cierra solo tras 30 segundos</td></tr>
+  </table>
+
+  <h3>Retry con Backoff Exponencial</h3>
+  <div class="highlight-box">
+    3 intentos automáticos con espera creciente. Si algún intento tiene éxito, resetea el contador del Circuit Breaker. Si todos fallan, incrementa el contador.
+  </div>
+  <table>
+    <tr><th>Intento</th><th>Espera</th><th>Acumulado</th></tr>
+    <tr><td>Intento 1</td><td>—</td><td>0s</td></tr>
+    <tr><td>Intento 2</td><td>1 segundo</td><td>1s</td></tr>
+    <tr><td>Intento 3</td><td>2 segundos</td><td>3s</td></tr>
+    <tr><td>Tiempo total máximo</td><td>4 segundos adicionales</td><td>~7s</td></tr>
+  </table>
+
+  <h3>Timeout</h3>
+  <table>
+    <tr><th>Capa</th><th>Endpoint</th><th>Timeout</th><th>Implementación</th></tr>
+    <tr><td>Frontend</td><td>GET /api/spots/available</td><td>2 segundos</td><td>AbortController en api.ts</td></tr>
+    <tr><td>Frontend</td><td>Todos los demás</td><td>10 segundos</td><td>AbortController en api.ts</td></tr>
+    <tr><td>Backend</td><td>Todos los endpoints</td><td>8 segundos</td><td>spring.mvc.async.request-timeout</td></tr>
+  </table>
+</section>
+
+<!-- 5. PRUEBAS UNITARIAS -->
+<section id="junit" class="page-break">
+  <h2 class="section-title">5. Pruebas Unitarias — JUnit + Mockito</h2>
+
+  <p>Se implementaron <strong>20 pruebas unitarias</strong> distribuidas en 3 clases, usando JUnit 5 y Mockito para aislar dependencias. Todas pasan con <code class="inline">./mvnw test</code>.</p>
+
+  <div class="success-box">
+    <strong>Resultado:</strong> Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+  </div>
+
+  <h3>JwtUtilTest — 6 tests</h3>
+  <table>
+    <tr><th>Test</th><th>Qué verifica</th></tr>
+    <tr><td>generateToken_debeRetornarTokenNoNulo</td><td>El token generado no es nulo ni vacío</td></tr>
+    <tr><td>extractUsername_debeRetornarUsernameCorrect</td><td>Extrae correctamente el username del payload</td></tr>
+    <tr><td>extractRole_debeRetornarRolCorrecto</td><td>Extrae correctamente el rol del payload</td></tr>
+    <tr><td>isTokenValid_tokenValido_debeRetornarTrue</td><td>Token válido retorna true</td></tr>
+    <tr><td>isTokenValid_tokenInvalido_debeRetornarFalse</td><td>Token con formato incorrecto retorna false</td></tr>
+    <tr><td>isTokenValid_tokenModificado_debeRetornarFalse</td><td>Token alterado falla la validación de firma</td></tr>
+  </table>
+
+  <h3>ParkingFacadeTest — 9 tests</h3>
+  <table>
+    <tr><th>Test</th><th>Qué verifica</th></tr>
+    <tr><td>admitVehicle_plazaLibre_debeCrearTicket</td><td>Crea ticket y marca plaza como ocupada</td></tr>
+    <tr><td>admitVehicle_plazaOcupada_debeLanzarExcepcion</td><td>Lanza IllegalStateException si plaza está ocupada</td></tr>
+    <tr><td>admitVehicle_plazaNoExiste_debeLanzarExcepcion</td><td>Lanza IllegalArgumentException si plaza no existe</td></tr>
+    <tr><td>exitAndPay_ticketActivo_debePagarYNoLiberarPlaza</td><td>Marca paid=true, released=false — plaza no se libera aún</td></tr>
+    <tr><td>exitAndPay_ticketYaPagado_debeRetornarTrueSinModificar</td><td>Idempotente — no modifica ticket ya pagado</td></tr>
+    <tr><td>exitAndPay_ticketNoExiste_debeLanzarExcepcion</td><td>Lanza IllegalArgumentException si ticket no existe</td></tr>
+    <tr><td>exitAndPay_calcularMonto_minimoCobra1Hora</td><td>Mínimo de cobro es 1 hora = $3.000</td></tr>
+    <tr><td>releaseSpot_debeMarcarReleasedYLiberarPlaza</td><td>Marca released=true y plaza occupied=false</td></tr>
+    <tr><td>getActiveTickets_debeRetornarSoloNoPagados</td><td>Solo retorna tickets con paid=false</td></tr>
+  </table>
+
+  <h3>PaymentControllerTest — 4 tests</h3>
+  <table>
+    <tr><th>Test</th><th>Qué verifica</th></tr>
+    <tr><td>circuitBreaker_debeAbrirTras5Fallos</td><td>Tras 5 fallos consecutivos, responde 503</td></tr>
+    <tr><td>circuitBreaker_debeCerrarTras30Segundos</td><td>Circuito se cierra automáticamente</td></tr>
+    <tr><td>retry_debeIntentar3Veces</td><td>Se hacen exactamente 3 intentos antes de fallar</td></tr>
+    <tr><td>pago_exitoso_debeRetornarSuccess</td><td>Pago exitoso retorna status=SUCCESS</td></tr>
+  </table>
+
+  <h3>Uso de Mockito</h3>
+  <code>@ExtendWith(MockitoExtension.class)
+class ParkingFacadeTest {
+    @Mock SpotJpaRepository spotJpaRepo;
+    @Mock TicketJpaRepository ticketJpaRepo;
+    @InjectMocks ParkingFacade facade;
+
+    // Simula que ya hay plazas en BD para evitar @PostConstruct
+    when(spotJpaRepo.count()).thenReturn(9L);
+    when(spotJpaRepo.findAll()).thenReturn(List.of(spotLibre, spotOcupado));
+}</code>
+</section>
+
+<!-- 6. PRUEBAS DE API -->
+<section id="newman" class="page-break">
+  <h2 class="section-title">6. Pruebas de API — Newman + Postman</h2>
+
+  <p>Se creó una colección de Postman con <strong>8 requests</strong> y <strong>14 assertions</strong> que prueba el flujo completo del sistema con el backend real. Ejecutada con Newman en el pipeline CI/CD.</p>
+
+  <div class="success-box">
+    <strong>Resultado:</strong> 14/14 assertions passed — 0 failures
+  </div>
+
+  <h3>Flujo de prueba (orden de ejecución)</h3>
+  <table>
+    <tr><th>#</th><th>Request</th><th>Método</th><th>Assertions</th></tr>
+    <tr><td>01</td><td>Login Celador</td><td>POST /api/auth/login</td><td>Status 200 · Token recibido como string</td></tr>
+    <tr><td>02</td><td>Get Available Spot</td><td>GET /api/spots/available?type=CAR</td><td>Status 200 · Al menos un spot disponible · Guarda spotId</td></tr>
+    <tr><td>03</td><td>Create Ticket</td><td>POST /api/tickets</td><td>Status 200 · Ticket tiene ID · Guarda ticketId</td></tr>
+    <tr><td>04</td><td>Get Active Tickets</td><td>GET /api/tickets/active</td><td>Status 200 · Respuesta es array</td></tr>
+    <tr><td>05</td><td>Process Payment</td><td>POST /api/payments</td><td>Status 200 · status = SUCCESS</td></tr>
+    <tr><td>06</td><td>Release Spot</td><td>POST /api/tickets/{id}/release</td><td>Status 200</td></tr>
+    <tr><td>07</td><td>Health Check</td><td>GET /actuator/health</td><td>Status 200 · status = UP</td></tr>
+    <tr><td>08</td><td>Sin Token 403</td><td>GET /api/spots</td><td>Status 403 — verifica seguridad</td></tr>
+  </table>
+
+  <h3>Variables dinámicas</h3>
+  <div class="highlight-box">
+    El token JWT se obtiene en el request 01 y se usa automáticamente en todos los siguientes. El spotId se captura en el request 02 para crear el ticket en el 03. El ticketId se captura en el 03 para pagar en el 05 y liberar en el 06.
+  </div>
+
+  <h3>Comando de ejecución</h3>
+  <code>newman run docs/parkflow-collection.json \
+  --env-var "token=" \
+  --env-var "ticketId="</code>
+
+  <div class="warning-box">
+    <strong>Nota:</strong> Antes de cada ejecución limpiar en Supabase SQL Editor:<br>
+    <code class="inline">UPDATE spots SET occupied = false;</code><br>
+    <code class="inline">DELETE FROM tickets WHERE license_plate = 'NEWMAN1';</code>
+  </div>
+</section>
+
+<!-- 7. PRUEBAS DE CARGA -->
+<section id="k6" class="page-break">
+  <h2 class="section-title">7. Pruebas de Carga — k6</h2>
+
+  <p>Se implementó un script de prueba de carga con <strong>k6</strong> simulando 50 usuarios virtuales durante 30 segundos, ejecutando el flujo completo: login → crear ticket → procesar pago.</p>
+
+  <div class="success-box">
+    <strong>Resultado:</strong> 400/400 checks passed — 0 failures con 50 usuarios concurrentes
+  </div>
+
+  <h3>Configuración del test</h3>
+  <table>
+    <tr><th>Parámetro</th><th>Valor</th></tr>
+    <tr><td>Usuarios virtuales (VUs)</td><td>50 usuarios concurrentes</td></tr>
+    <tr><td>Duración</td><td>30 segundos</td></tr>
+    <tr><td>Archivo</td><td>docs/k6-load-test.js</td></tr>
+    <tr><td>Flujo probado</td><td>Login → GET spots → POST ticket → POST payment</td></tr>
+  </table>
+
+  <h3>Checks implementados</h3>
+  <table>
+    <tr><th>Check</th><th>Condición</th></tr>
+    <tr><td>Login exitoso</td><td>HTTP 200 + token en respuesta</td></tr>
+    <tr><td>Spots disponibles</td><td>HTTP 200 + array no vacío</td></tr>
+    <tr><td>Ticket creado</td><td>HTTP 200 + id en respuesta</td></tr>
+    <tr><td>Pago procesado</td><td>HTTP 200 + status = SUCCESS</td></tr>
+  </table>
+
+  <h3>Comando de ejecución</h3>
+  <code>k6 run docs/k6-load-test.js</code>
+</section>
+
+<!-- 8. PRUEBAS GUI -->
+<section id="cypress" class="page-break">
+  <h2 class="section-title">8. Pruebas de GUI — Cypress E2E</h2>
+
+  <p>Se implementaron pruebas end-to-end con <strong>Cypress</strong> cubriendo los 3 roles del sistema y los flujos principales de navegación, autenticación y control de acceso.</p>
+
+  <div class="success-box">
+    <strong>Resultado:</strong> 4 suites · 14 casos de prueba E2E
+  </div>
+
+  <h3>Suites de pruebas</h3>
+  <table>
+    <tr><th>Archivo</th><th>Tests</th><th>Qué cubre</th></tr>
+    <tr><td>login.cy.ts</td><td>4</td><td>Login exitoso celador/admin/usuario · Login fallido muestra error</td></tr>
+    <tr><td>attendant.cy.ts</td><td>4</td><td>Dashboard stats · Sidebar por rol · Navegación · Sin opciones admin</td></tr>
+    <tr><td>user.cy.ts</td><td>4</td><td>Dashboard · Sección placas · Formulario agregar placa · Ticket y Pago</td></tr>
+    <tr><td>admin.cy.ts</td><td>4</td><td>Panel admin · Trabajadores · Bloqueo rutas de otros roles · Logout</td></tr>
+  </table>
+
+  <h3>Casos de prueba</h3>
+  <div class="test-result pass">✅ Login exitoso como celador redirige a /attendant/dashboard</div>
+  <div class="test-result pass">✅ Login exitoso como admin redirige a /admin/panel</div>
+  <div class="test-result pass">✅ Login exitoso como usuario redirige a /user/dashboard</div>
+  <div class="test-result pass">✅ Login fallido muestra mensaje de error visible</div>
+  <div class="test-result pass">✅ Dashboard celador muestra estadísticas de plazas</div>
+  <div class="test-result pass">✅ Sidebar celador NO muestra opciones de admin</div>
+  <div class="test-result pass">✅ Celador navega correctamente a Registrar Entrada</div>
+  <div class="test-result pass">✅ Celador navega correctamente a Reportes</div>
+  <div class="test-result pass">✅ Usuario ve sección de vehículos registrados</div>
+  <div class="test-result pass">✅ Usuario puede abrir formulario para agregar placa</div>
+  <div class="test-result pass">✅ Sidebar usuario NO muestra opciones de celador ni admin</div>
+  <div class="test-result pass">✅ Admin navega a gestión de trabajadores</div>
+  <div class="test-result pass">✅ Admin no puede acceder a rutas de usuario</div>
+  <div class="test-result pass">✅ Cierre de sesión funciona en todos los roles</div>
+
+  <h3>Configuración</h3>
+  <code>// cypress.config.ts
+export default defineConfig({
+  e2e: {
+    baseUrl: 'http://localhost:3000',
+    specPattern: 'cypress/e2e/**/*.cy.ts',
+    defaultCommandTimeout: 8000,
+    viewportWidth: 1280,
+    viewportHeight: 720,
+    video: false
+  }
+});</code>
+</section>
+
+<!-- 9. CI/CD -->
+<section id="cicd" class="page-break">
+  <h2 class="section-title">9. Pipeline CI/CD — GitHub Actions</h2>
+
+  <p>Se configuró un pipeline completo en GitHub Actions que se ejecuta automáticamente en cada push a la rama <code class="inline">main</code>. El pipeline incluye compilación, pruebas, análisis de seguridad y generación de artifacts.</p>
+
+  <div class="success-box">
+    <strong>Estado:</strong> Pipeline verde ✅ — todos los pasos pasan exitosamente
+  </div>
+
+  <h3>Pasos del pipeline</h3>
+  <table>
+    <tr><th>Paso</th><th>Herramienta</th><th>Qué verifica</th></tr>
+    <tr><td>1. Compilar backend</td><td>Maven</td><td>mvnw clean compile — sin errores de compilación</td></tr>
+    <tr><td>2. Pruebas unitarias</td><td>JUnit + Mockito</td><td>20/20 tests pasan</td></tr>
+    <tr><td>3. Backend en background</td><td>Spring Boot</td><td>Espera /actuator/health = UP</td></tr>
+    <tr><td>4. Pruebas de API</td><td>Newman</td><td>14/14 assertions con backend real</td></tr>
+    <tr><td>5. OWASP Dependency Check</td><td>Maven plugin</td><td>CVEs en dependencias Maven</td></tr>
+    <tr><td>6. Gitleaks</td><td>GitHub Action</td><td>Secrets en historial de git</td></tr>
+    <tr><td>7. Trivy</td><td>GitHub Action</td><td>Vulnerabilidades en filesystem</td></tr>
+    <tr><td>8. Package JAR</td><td>Maven</td><td>Genera artifact descargable</td></tr>
+  </table>
+
+  <h3>Ubicación del pipeline</h3>
+  <code>.github/workflows/ci-cd.yml
+  
+# Para disparar manualmente:
+# GitHub → Actions → ParkFlow CI/CD → Run workflow
+
+# URL del repositorio:
+# https://github.com/AnaSofia64/Proyecto-Diseno/actions</code>
+
+  <h3>Artifacts generados</h3>
+  <div class="highlight-box">
+    Cada ejecución del pipeline genera artifacts descargables desde GitHub Actions: el JAR compilado del backend, el reporte HTML de OWASP Dependency Check, y los resultados de Newman en formato JSON.
+  </div>
+</section>
+
+<!-- 10. DEVSECOPS -->
+<section id="devsecops" class="page-break">
+  <h2 class="section-title">10. DevSecOps — OWASP, Gitleaks, Trivy</h2>
+
+  <p>Se integraron tres herramientas de seguridad en el pipeline CI/CD, cubriendo análisis de dependencias, detección de secretos y escaneo de vulnerabilidades en el sistema de archivos.</p>
+
+  <h3>OWASP Dependency Check</h3>
+  <div class="highlight-box">
+    Analiza las dependencias Maven del backend buscando CVEs conocidos en la base de datos NVD. Genera reporte HTML detallado.
+  </div>
+  <table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Herramienta</td><td>OWASP Dependency Check Maven Plugin</td></tr>
+    <tr><td>Umbral académico</td><td>CVSS = 11 (nunca bloquea — solo reporta)</td></tr>
+    <tr><td>Umbral producción recomendado</td><td>CVSS = 7 (bloquea el build)</td></tr>
+    <tr><td>Reporte generado</td><td>target/dependency-check/dependency-check-report.html</td></tr>
+    <tr><td>Comando</td><td>mvnw org.owasp:dependency-check-maven:check</td></tr>
+  </table>
+
+  <h3>Gitleaks — Detección de Secretos</h3>
+  <div class="highlight-box">
+    Escanea el historial completo de git buscando secretos expuestos como API keys, passwords, tokens o credenciales hardcodeadas en el código fuente.
+  </div>
+  <table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Herramienta</td><td>Gitleaks GitHub Action</td></tr>
+    <tr><td>Resultado esperado</td><td>no leaks found</td></tr>
+    <tr><td>Qué detecta</td><td>API keys, passwords, JWT secrets, tokens de acceso</td></tr>
+    <tr><td>Comando local</td><td>gitleaks detect --redact -v</td></tr>
+  </table>
+
+  <h3>Trivy — Escaneo de Vulnerabilidades</h3>
+  <div class="highlight-box">
+    Escanea el filesystem del proyecto buscando vulnerabilidades conocidas en las dependencias y librerías usadas.
+  </div>
+  <table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Herramienta</td><td>Trivy GitHub Action (aquasecurity)</td></tr>
+    <tr><td>Resultado típico</td><td>10 CVEs reportados — 3 CRITICAL, 7 HIGH en Tomcat/Spring Boot</td></tr>
+    <tr><td>Exit code</td><td>0 — solo reporta, no bloquea el build</td></tr>
+    <tr><td>Comando local</td><td>trivy fs Back-end/backend</td></tr>
+  </table>
+
+  <div class="warning-box">
+    <strong>Nota sobre resultados:</strong> Los CVEs reportados por Trivy corresponden a versiones de Tomcat y Spring Boot incluidas por defecto. En un entorno de producción se actualizarían las dependencias o se aplicarían mitigaciones. Para el contexto académico, el umbral está configurado para reportar sin bloquear.
+  </div>
+</section>
+
+<!-- 11. OBSERVABILIDAD -->
+<section id="observabilidad" class="page-break">
+  <h2 class="section-title">11. Observabilidad — Prometheus, Grafana, Jaeger</h2>
+
+  <p>ParkFlow implementa las tres capas fundamentales de observabilidad moderna ejecutadas en Docker Compose, activas en todos los endpoints del sistema.</p>
+
+  <div class="grid-3">
+    <div class="card"><h4>🔵 Prometheus :9090</h4><p>Recolecta métricas del backend cada 15 segundos desde /actuator/prometheus</p></div>
+    <div class="card"><h4>🟠 Grafana :3001</h4><p>Dashboard "ParkFlow Observabilidad" con 4 paneles en tiempo real</p></div>
+    <div class="card"><h4>🟣 Jaeger :16686</h4><p>Trazas distribuidas por request con span completo de cada operación</p></div>
+  </div>
+
+  <h3>Dashboard Grafana — 4 paneles</h3>
+  <table>
+    <tr><th>Panel</th><th>Query PromQL</th><th>Qué muestra</th></tr>
+    <tr><td>Requests HTTP</td><td>rate(http_server_requests_seconds_count[1m])</td><td>Volumen de tráfico en tiempo real</td></tr>
+    <tr><td>Tiempo de respuesta</td><td>rate(...sum[1m]) / rate(...count[1m])</td><td>Latencia promedio por endpoint</td></tr>
+    <tr><td>Memoria JVM</td><td>jvm_memory_used_bytes{area="heap"}</td><td>Salud de la JVM — sin memory leaks</td></tr>
+    <tr><td>Requests de pago</td><td>filtrado por uri="/api/payments"</td><td>Monitoreo del endpoint crítico con Circuit Breaker</td></tr>
+  </table>
+
+  <h3>Traza ejemplo — POST /api/payments</h3>
+  <code>POST /api/payments ─────────────────── 245ms (traza raíz)
+  ├── JwtFilter.doFilter ─────────────── 2ms
+  ├── PaymentController.processPayment ── 240ms
+  │     ├── ParkingFacade.findTicket ──── 45ms (query BD)
+  │     └── ParkingFacade.exitAndPay ──── 180ms
+  │           ├── TicketJpaRepo.save ──── 85ms (write BD)
+  │           └── SpotJpaRepo.save ─────── 90ms (write BD)
+  └── Response serialization ──────────── 3ms</code>
+
+  <h3>Cómo levantar el stack</h3>
+  <code>cd Proyecto-Diseño
+docker compose up -d
+
+# Verificar contenedores:
+docker ps
+# parkflow-prometheus  → Up
+# parkflow-grafana     → Up
+# parkflow-jaeger      → Up</code>
+</section>
+
+<!-- 12. MODELOS -->
+<section id="modelos" class="page-break">
+  <h2 class="section-title">12. Modelos 4+1 y C4</h2>
+
+  <h3>Modelo 4+1 — Resumen de vistas</h3>
+  <table>
+    <tr><th>Vista</th><th>Descripción</th><th>Elementos clave</th></tr>
+    <tr><td>Lógica</td><td>Funcionalidad desde perspectiva del usuario</td><td>Controllers, ParkingFacade, Roles, Entidades JPA</td></tr>
+    <tr><td>Procesos</td><td>Procesos en tiempo de ejecución</td><td>Flujo de login, flujo de pago con CB, registro de entrada</td></tr>
+    <tr><td>Desarrollo</td><td>Organización del código fuente</td><td>Paquetes por capa, patrones aplicados por entrega</td></tr>
+    <tr><td>Física</td><td>Despliegue en infraestructura</td><td>Localhost, Supabase nube, Docker Compose, GitHub Actions</td></tr>
+    <tr><td>Escenarios</td><td>Casos de uso que validan las otras vistas</td><td>Usuario paga, servicio falla, celador da reportes, admin gestiona</td></tr>
+  </table>
+
+  <h3>Modelo C4 — Niveles</h3>
+  <table>
+    <tr><th>Nivel</th><th>Muestra</th></tr>
+    <tr><td>Nivel 1 — Contexto</td><td>ParkFlow interactúa con Usuario, Celador, Admin + Supabase y Stripe</td></tr>
+    <tr><td>Nivel 2 — Contenedores</td><td>Frontend, Backend, Supabase PostgreSQL, Stack Docker de observabilidad</td></tr>
+    <tr><td>Nivel 3 — Backend</td><td>Seguridad, Controllers, ParkingFacade, Repositorios JPA, Observabilidad</td></tr>
+    <tr><td>Nivel 3 — Frontend</td><td>router.ts, auth.ts, api.ts, Pages por rol, Components compartidos</td></tr>
+  </table>
+
+  <div class="highlight-box">
+    Los diagramas visuales completos se encuentran en <code class="inline">docs/diagrams/</code> y los documentos detallados en <code class="inline">docs/modelo-4+1.md</code>, <code class="inline">docs/modelo-c4.md</code> y <code class="inline">docs/diagramas-c4-4plus1.html</code>.
+  </div>
+</section>
+
+<!-- 13. RETOS -->
+<section id="retos">
+  <h2 class="section-title">13. Retos y Soluciones</h2>
+
+  <table>
+    <tr><th>Reto</th><th>Solución implementada</th></tr>
+    <tr>
+      <td>Límite de conexiones en Supabase free tier (MaxClientsInSessionMode)</td>
+      <td>Configurar HikariCP con maximum-pool-size=2 y agregar prepareThreshold=0 en la URL JDBC para deshabilitar prepared statements del pooler</td>
+    </tr>
+    <tr>
+      <td>Hibernate preparaba DDL con ddl-auto=update agotando conexiones</td>
+      <td>Cambiar a ddl-auto=none y ejecutar migraciones manuales en Supabase SQL Editor</td>
+    </tr>
+    <tr>
+      <td>Circuit Breaker con throw — "unreachable statement" no compilaba en Java</td>
+      <td>Usar if(true) throw para engañar al compilador durante demos sin alterar comportamiento real</td>
+    </tr>
+    <tr>
+      <td>Tickets pagados desaparecían de reportes antes de que el celador diera salida</td>
+      <td>Agregar campo released a TicketEntity — separar estado de pago del estado de salida física de la plaza</td>
+    </tr>
+    <tr>
+      <td>user_plates necesitaba vehicle_type pero era un ElementCollection simple</td>
+      <td>Migrar a entidad UserPlateEntity con su propia tabla, ID y repositorio JPA independiente</td>
+    </tr>
+    <tr>
+      <td>Newman en el pipeline necesitaba el backend corriendo en localhost</td>
+      <td>Iniciar Spring Boot en background en GitHub Actions y esperar con curl al endpoint /actuator/health antes de ejecutar Newman</td>
+    </tr>
+    <tr>
+      <td>CORS bloqueaba requests del frontend al backend</td>
+      <td>Configurar CorsConfig.java con los orígenes permitidos (localhost:3000, 5173, 5174)</td>
+    </tr>
+    <tr>
+      <td>Frontend TypeScript puro sin React dificulta el manejo de estado</td>
+      <td>Patrón de clases con métodos de renderizado y re-renderizado explícito por componente (buildCard, buildTable)</td>
+    </tr>
+    <tr>
+      <td>Tests JUnit necesitaban aislar @PostConstruct de ParkingFacade</td>
+      <td>Mockear spotJpaRepo.count() para retornar 9L y evitar que el init() intente crear plazas en BD</td>
+    </tr>
+  </table>
+</section>
+
+</body>
+</html>
